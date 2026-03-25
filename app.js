@@ -5,7 +5,6 @@ const BREAKPOINTS = [2, 6, 11, 16, 21, 31, 41];
 const xpCostToNext = [0, 0, 15, 30, 30, 35, 35, 35, 40, 40, 40, 60, 90, 105, 120, 140, 160, 180, 205, 230, 255, 285, 315, 345, 375, 410, 445, 480, 520, 560, 600, 645, 690, 735, 780, 830, 880, 930, 985, 1040, 1095, 1155, 1215, 1275, 1335, 1400, 1465, 1530, 1600, 1670, 1740];
 
 const STAR_RANK_MAP = {
-    1: 10,
     2: 10,
     3: 20,
     4: 30,
@@ -26,6 +25,7 @@ const uiTranslations = {
         statAtk: "공격력",
         statHp: "최대 체력",
         statHeal: "치유력",
+        statDef: "방어력",
         calcBtn: "최적화 계획 산출",
         alertNoChars: "최소 한 명의 학생을 선택해주세요!",
         roadmapTitle: "최적의 스탯 인연작 로드맵",
@@ -33,8 +33,8 @@ const uiTranslations = {
         totalStatGain: "총 {stat} 상승량:",
         allMaxRank: "선택한 모든 학생이 이미 최대 랭크입니다!",
         step: "단계",
-        tieTitle: "동일 순위 (한 쪽을 먼저)",
-        tieInstruction: "이 업그레이드는 가치가 동일합니다. <strong>초대권, 선물 등을 분산시키지 마세요.</strong> 목표 랭크에 도달할 때까지 한 학생에게 집중한 다음, 다음 학생으로 넘어가세요.",
+        tieTitle: "동순위 (한 쪽을 먼저)",
+        tieInstruction: "가치가 동일한 부분입니다. <strong>초대권, 선물 등을 분산시키지 마세요.</strong> 목표 랭크에 도달할 때까지 한 학생에게 집중한 다음, 다음 학생으로 넘어가세요.",
         tieOr: "— 또는 —",
         rank: "인연랭",
         currentRank: "현 인연 랭크",
@@ -46,7 +46,7 @@ const uiTranslations = {
         include: "보유",
         notInclude: "미보유",
         reportIssue: "문제 보고",
-        languageLabel: "언어:",
+        languageLabel: "Language:",
     },
     en: {
         title: "Bond Rank Bonus Stat Optimizer\nfor Students with Alts",
@@ -56,6 +56,7 @@ const uiTranslations = {
         statAtk: "ATK",
         statHp: "Max HP",
         statHeal: "Healing",
+        statDef: "DEF",
         calcBtn: "Generate Optimal Bond Roadmap",
         alertNoChars: "Please select at least one character!",
         roadmapTitle: "Complete Optimal Roadmap to Rank 50",
@@ -86,6 +87,7 @@ const uiTranslations = {
         statAtk: "攻撃力",
         statHp: "最大HP",
         statHeal: "治癒力",
+        statDef: "防御力",
         calcBtn: "最適化ルート計算",
         alertNoChars: "少なくとも一人の生徒を選択してください！",
         roadmapTitle: "絆ランク50への完全最適化ロードマップ",
@@ -106,7 +108,7 @@ const uiTranslations = {
         include: "所属",
         notInclude: "未所属",
         reportIssue: "問題を報告",
-        languageLabel: "言語:",
+        languageLabel: "Language:",
     }
 };// Function to update all static HTML text
 function updateStaticUI() {
@@ -209,8 +211,7 @@ document.getElementById('baseCharSelect').addEventListener('change', (e) => {
                     <div>
                         <label for="stars-${altId}">${t.stars}:</label>
                         <select class="alt-stars" id="stars-${altId}" style="width: 120px;">
-                            <option value="1">★</option>
-                            <option value="2">★★</option>
+                            <option value="2">★/★★</option>
                             <option value="3">★★★</option>
                             <option value="4">★★★★</option>
                             <option value="5" selected>★★★★★</option>
@@ -294,7 +295,8 @@ document.getElementById('calcButton').addEventListener('click', () => {
     const statKeyMap = {
         atk: 'statAtk',
         hp: 'statHp',
-        healing: 'statHeal'
+        healing: 'statHeal',
+        def: 'statDef'
     };
     const statName = t[statKeyMap[targetStat]];
     
