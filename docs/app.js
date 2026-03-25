@@ -53,6 +53,10 @@ const uiTranslations = {
         languageLabel: "Language:",
         copyBtn: "복사",
         copiedBtn: "복사됨!",
+        graphViewBtn: "그래프 보기",
+        graphXAxis: "누적 인연 XP",
+        graphYAxis: "누적 {stat} 상승량",
+        graphStart: "시작",
     },
     en: {
         title: "Blue Archive\nBond Rank Bonus Stat Optimizer for Students with Alts",
@@ -65,7 +69,7 @@ const uiTranslations = {
         statDef: "DEF",
         calcBtn: "Generate Optimal Bond Roadmap",
         alertNoChars: "Please select at least one character!",
-        roadmapTitle: "Complete Optimal Roadmap to Rank 50",
+        roadmapTitle: "Optimal Roadmap",
         totalXp: "Total XP Required:",
         totalStatGain: "Total {stat} Gain:",
         allMaxRank: "No earnable Bonus Stats are available!",
@@ -82,7 +86,7 @@ const uiTranslations = {
         star5: "★★★★★",
         levelUpFrom: "Level up from",
         summaryViewBtn: "Summarize",
-        detailsViewBtn: "Show Details",
+        detailsViewBtn: "Details",
         summaryTied: "Tied",
         include: "Have",
         notInclude: "Don't Have",
@@ -90,6 +94,10 @@ const uiTranslations = {
         languageLabel: "Language:",
         copyBtn: "Copy",
         copiedBtn: "Copied!",
+        graphViewBtn: "Show Graph",
+        graphXAxis: "Cumulative Bond XP",
+        graphYAxis: "Cumulative {stat} Gain",
+        graphStart: "Start",
     },
     jp: {
         title: "ブルーアーカイブ\n絆ランクボーナス最適化\n他の衣装がある生徒のため",
@@ -102,7 +110,7 @@ const uiTranslations = {
         statDef: "防御力",
         calcBtn: "最適化ルート計算",
         alertNoChars: "少なくとも一人の生徒を選択してください！",
-        roadmapTitle: "絆ランク50への完全最適化ロードマップ",
+        roadmapTitle: "最適化ロードマップ",
         totalXp: "総必要絆XP：",
         totalStatGain: "総{stat}上昇量：",
         allMaxRank: "取得可能なボーナスステータスはありません！",
@@ -118,8 +126,8 @@ const uiTranslations = {
         star4: "★★★★",
         star5: "★★★★★",
         levelUpFrom: "レベルアップ：",
-        summaryViewBtn: "要約表示",
-        detailsViewBtn: "詳細表示",
+        summaryViewBtn: "要約",
+        detailsViewBtn: "詳細",
         summaryTied: "同順位",
         include: "所属",
         notInclude: "未所属",
@@ -127,6 +135,10 @@ const uiTranslations = {
         languageLabel: "Language:",
         copyBtn: "コピー",
         copiedBtn: "コピーしました！",
+        graphViewBtn: "グラフ表示",
+        graphXAxis: "累積絆XP",
+        graphYAxis: "累積{stat}上昇量",
+        graphStart: "開始",
     }
 };// Function to update all static HTML text
 function updateStaticUI() {
@@ -217,9 +229,11 @@ document.getElementById('baseCharSelect').addEventListener('change', (e) => {
         const cardHtml = `
             <div class="alt-card">
                 <label>
-                    <input type="checkbox" class="alt-toggle" data-id="${altId}" checked>
-                    <strong>${student.names.full[currentLang]}</strong>
-                    <span id="include-status-${altId}" style="font-size: 0.8em; color: #888; margin-left: 8px;">(${t.include})</span>
+                    <span style="display: inline-flex; align-items: center; white-space: nowrap;">
+                        <strong>${student.names.full[currentLang]}</strong>
+                        <span id="include-status-${altId}" style="font-size: 0.8em; color: #888; margin-left: 8px;">(${t.include})</span>
+                        <input type="checkbox" class="alt-toggle" data-id="${altId}" checked style="margin: 0 0 0 5px;">
+                    </span>
                 </label>
                 <div style="margin-top: 8px; display: flex; gap: 15px; align-items: flex-end;">
                     <div style="flex: 1;">
@@ -354,8 +368,20 @@ document.getElementById('calcButton').addEventListener('click', () => {
         return step.gain > 0;
     });
 
-    // Recalculate total cost for only the steps being shown.
-    const displayTotalCost = gainfulSteps.reduce((total, step) => total + step.cost, 0);
+    // Create a separate list of steps for the graph from the raw, uncompressed data.
+    const gainfulRawStepsForGraph = rawRoadmapData.steps.filter(step => step.gain > 0);
+
+    // Recalculate total cost and gain for only the steps being shown.
+    const { cost: displayTotalCost, gain: displayTotalGain } = gainfulSteps.reduce((totals, step) => {
+        if (step.isTieGroup) {
+            totals.cost += step.cost * step.options.length;
+            totals.gain += step.gain * step.options.length;
+        } else {
+            totals.cost += step.cost;
+            totals.gain += step.gain;
+        }
+        return totals;
+    }, { cost: 0, gain: 0 });
 
     const resultsDiv = document.getElementById('results');
 
@@ -364,60 +390,77 @@ document.getElementById('calcButton').addEventListener('click', () => {
         resultsDiv.innerHTML = `
             <h3>${t.roadmapTitle}</h3>
             <p>${t.totalXp} <strong>${displayTotalCost}</strong></p>
-            <p>${t.totalStatGain.replace('{stat}', statName)} <strong>+${rawRoadmapData.totalGain}</strong></p>
+            <p>${t.totalStatGain.replace('{stat}', statName)} <strong>+${displayTotalGain}</strong></p>
             <hr>
             <p>${t.allMaxRank}</p>
         `;
         return;
     }
 
-    // Generate both detailed and summary views
+    // Generate all three views
     const detailedHtml = generateDetailedHtml(gainfulSteps, t, statName);
     const summaryText = generateSummaryText(gainfulSteps, t);
+    const summaryHtml = `
+        <pre>${summaryText}</pre>
+        <button id="copySummaryBtn" class="btn-inline" style="margin-top: 10px;">${t.copyBtn}</button>
+    `;
+    const graphHtml = generateGraphSvg(gainfulRawStepsForGraph, t, statName, activeAlts);
 
     // Set up initial HTML with a container for steps and a toggle button
     resultsDiv.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <h3>${t.roadmapTitle}</h3>
-            <button id="summaryToggleBtn" class="btn-inline">${t.summaryViewBtn}</button>
+            <div id="view-toggle-container">
+                <button id="detailsViewBtn" class="btn-inline" disabled>${t.detailsViewBtn}</button>
+                <button id="summaryViewBtn" class="btn-inline">${t.summaryViewBtn}</button>
+                <button id="graphViewBtn" class="btn-inline">${t.graphViewBtn}</button>
+            </div>
         </div>
         <p>${t.totalXp} <strong>${displayTotalCost}</strong></p>
-        <p>${t.totalStatGain.replace('{stat}', statName)} <strong>+${rawRoadmapData.totalGain}</strong></p>
+        <p>${t.totalStatGain.replace('{stat}', statName)} <strong>+${displayTotalGain}</strong></p>
         <hr>
         <div id="roadmap-steps-container">${detailedHtml}</div>
     `;
 
-    // Add event listener for the new toggle button
-    const toggleBtn = document.getElementById('summaryToggleBtn');
+    // Add event listeners for the view toggle buttons
     const stepsContainer = document.getElementById('roadmap-steps-container');
+    const detailsBtn = document.getElementById('detailsViewBtn');
+    const summaryBtn = document.getElementById('summaryViewBtn');
+    const graphBtn = document.getElementById('graphViewBtn');
+    const allViewBtns = [detailsBtn, summaryBtn, graphBtn];
 
-    toggleBtn.addEventListener('click', () => {
-        const isShowingDetails = stepsContainer.querySelector('pre') === null;
-        if (isShowingDetails) {
-            stepsContainer.innerHTML = `
-                <pre>${summaryText}</pre>
-                <button id="copySummaryBtn" class="btn-inline" style="margin-top: 10px;">${t.copyBtn}</button>
-            `;
-            toggleBtn.textContent = t.detailsViewBtn;
+    const copyAction = (e) => {
+        navigator.clipboard.writeText(summaryText).then(() => {
+            const copyBtn = e.target;
+            const originalText = copyBtn.textContent;
+            copyBtn.textContent = t.copiedBtn;
+            copyBtn.disabled = true;
+            setTimeout(() => {
+                copyBtn.textContent = originalText;
+                copyBtn.disabled = false;
+            }, 1500);
+        }).catch(err => console.error('Failed to copy text: ', err));
+    };
 
-            // Add event listener for the new copy button
-            document.getElementById('copySummaryBtn').addEventListener('click', (e) => {
-                navigator.clipboard.writeText(summaryText).then(() => {
-                    const copyBtn = e.target;
-                    const originalText = copyBtn.textContent;
-                    copyBtn.textContent = t.copiedBtn;
-                    copyBtn.disabled = true;
-                    setTimeout(() => {
-                        copyBtn.textContent = originalText;
-                        copyBtn.disabled = false;
-                    }, 1500); // Revert back after 1.5 seconds
-                }).catch(err => console.error('Failed to copy text: ', err));
-            });
+    const setActiveButton = (activeBtn) => {
+        allViewBtns.forEach(btn => btn.disabled = false);
+        activeBtn.disabled = true;
+    };
 
-        } else {
-            stepsContainer.innerHTML = detailedHtml;
-            toggleBtn.textContent = t.summaryViewBtn;
-        }
+    detailsBtn.addEventListener('click', () => {
+        stepsContainer.innerHTML = detailedHtml;
+        setActiveButton(detailsBtn);
+    });
+
+    summaryBtn.addEventListener('click', () => {
+        stepsContainer.innerHTML = summaryHtml;
+        setActiveButton(summaryBtn);
+        document.getElementById('copySummaryBtn').addEventListener('click', copyAction);
+    });
+
+    graphBtn.addEventListener('click', () => {
+        stepsContainer.innerHTML = graphHtml;
+        setActiveButton(graphBtn);
     });
 });
 
@@ -560,8 +603,8 @@ function compressRoadmap(rawSteps) {
             const current = { ...sequentiallyCompressed[i] };
             let last = finalCompressed[finalCompressed.length - 1];
             
-            const lastGain = last.isTieGroup ? last.gain : last.gain;
-            const lastCost = last.isTieGroup ? last.cost : last.cost;
+            const lastGain = last.gain;
+            const lastCost = last.cost;
 
             // Group if they have identical gain and cost.
             if (lastGain === current.gain && lastCost === current.cost) {
@@ -587,6 +630,123 @@ function compressRoadmap(rawSteps) {
 }
 
 // --- 5. VIEW RENDERING FUNCTIONS ---
+
+/**
+ * Generates an SVG graph of the roadmap.
+ */
+function generateGraphSvg(steps, t, statName, activeAlts) {
+    if (steps.length === 0) return '';
+
+    // 1. Prepare data points with full state at each step
+    let cumulativeXp = 0;
+    let cumulativeStat = 0;
+
+    const studentRanks = {};
+    const studentShortNames = {};
+    activeAlts.forEach(alt => {
+        studentRanks[alt.name] = alt.currentRank;
+        studentShortNames[alt.name] = alt.shortName;
+    });
+
+    const dataPoints = [{ x: 0, y: 0, step: 0, ranks: {...studentRanks} }];
+
+    steps.forEach((step, index) => {
+        cumulativeXp += step.cost;
+        cumulativeStat += step.gain;
+        studentRanks[step.name] = step.targetRank;
+        dataPoints.push({ x: cumulativeXp, y: cumulativeStat, step: index + 1, ranks: {...studentRanks} });
+    });
+
+    // 2. SVG dimensions and scales
+    const width = 500;
+    const height = 300;
+    const margin = { top: 20, right: 20, bottom: 50, left: 70 };
+    const graphWidth = width - margin.left - margin.right;
+    const graphHeight = height - margin.top - margin.bottom;
+    const maxXp = dataPoints.length > 1 ? dataPoints[dataPoints.length - 1].x : 1;
+    const maxStat = dataPoints.length > 1 ? dataPoints[dataPoints.length - 1].y : 1;
+
+    if (maxXp === 0 || maxStat === 0) return `<p style="text-align: center; padding: 20px;">Cannot draw graph: No XP cost or stat gain.</p>`;
+    const xScale = (x) => (x / maxXp) * graphWidth;
+    const yScale = (y) => graphHeight - (y / maxStat) * graphHeight;
+
+    // Export the graph data globally so our tooltip functions can read it later
+    window.activeGraphConfig = {
+        data: dataPoints,
+        shortNames: studentShortNames,
+        statName: statName,
+        t: t,
+        graphWidth: graphWidth
+    };
+
+    // 3. Build SVG parts
+    const style = `
+        <style>
+            .line { fill: none; stroke: #007bff; stroke-width: 2; pointer-events: none; }
+            .marker-diamond { fill: #007bff; stroke: white; stroke-width: 1; pointer-events: none; }
+            .marker-area { fill: transparent; cursor: pointer; }
+            .axis-line { stroke: #ccc; }
+            .axis-label { fill: #666; font-size: 12px; }
+            .tick-label, .step-label { fill: #333; font-size: 12px; }
+            .tooltip { font-size: 12px; pointer-events: none; }
+            .tooltip-bg { fill: #fff; stroke: #ccc; stroke-width: 1; opacity: 0.95; }
+
+            @media (prefers-color-scheme: dark) {
+                .line { stroke: #58a6ff; }
+                .marker-diamond { fill: #58a6ff; stroke: #21262d; }
+                .axis-line { stroke: #444; }
+                .axis-label { fill: #8b949e; }
+                .tick-label, .step-label { fill: #c9d1d9; }
+                .tooltip-bg { fill: #21262d; stroke: #444; }
+                .tooltip text, .tooltip tspan { fill: #c9d1d9; }
+            }
+        </style>
+    `;
+
+    const linePoints = dataPoints.map(p => `${xScale(p.x)},${yScale(p.y)}`).join(' ');
+    const line = `<polyline class="line" points="${linePoints}" />`;
+
+    let visibleMarkers = '';
+    let hoverAreas = '';
+    dataPoints.forEach((p, i) => {
+        const cx = xScale(p.x);
+        const cy = yScale(p.y);
+        visibleMarkers += `<path class="marker-diamond" d="M${cx},${cy - 4} L${cx + 4},${cy} L${cx},${cy + 4} L${cx - 4},${cy} Z" />`;
+        
+        // Pass 'this' into the function so the script knows exactly which graph is being hovered
+        hoverAreas += `<circle class="marker-area" cx="${cx}" cy="${cy}" r="8" onmouseover="showGraphTooltip(event, ${i}, this)" onmouseout="hideGraphTooltip(this)" />`;
+    });
+
+    const yAxisLabel = t.graphYAxis.replace('{stat}', statName);
+    const axes = `<line class="axis-line" x1="0" y1="0" x2="0" y2="${graphHeight}" /><text class="axis-label" transform="rotate(-90)" x="${-graphHeight / 2}" y="-50" text-anchor="middle">${yAxisLabel}</text><text class="tick-label" x="-10" y="0" text-anchor="end" dy="0.3em">${maxStat.toLocaleString()}</text><text class="tick-label" x="-10" y="${graphHeight}" text-anchor="end">0</text><line class="axis-line" x1="0" y1="${graphHeight}" x2="${graphWidth}" y2="${graphHeight}" /><text class="axis-label" x="${graphWidth / 2}" y="${graphHeight + 40}" text-anchor="middle">${t.graphXAxis}</text><text class="tick-label" x="${graphWidth}" y="${graphHeight + 20}" text-anchor="end">${maxXp.toLocaleString()}</text>`;
+
+    // Changed all 'id' attributes to 'class' attributes to prevent duplicates
+    const tooltip = `
+        <g class="tooltip graph-tooltip" visibility="hidden">
+            <rect class="tooltip-bg" width="150" height="80" rx="4" />
+            <text class="tooltip-text" x="10" y="20">
+                <tspan class="tooltip-xp" x="10" dy="0"></tspan>
+                <tspan class="tooltip-stat" x="10" dy="1.2em"></tspan>
+                <tspan class="tooltip-ranks-header" x="10" dy="1.5em" font-style="italic" font-size="0.9em">${t.rank}:</tspan>
+            </text>
+        </g>`;
+    // (The <script> tag has been entirely removed from here)
+    
+    return `
+        <div class="graph-container" style="max-width: ${width}px; margin: 20px auto 0;">
+            <svg viewBox="0 0 ${width} ${height}" style="width: 100%; height: auto; overflow: visible;">
+                ${style}
+                <g transform="translate(${margin.left}, ${margin.top})">
+                    ${axes}
+                    ${line}
+                    ${visibleMarkers}
+                    ${tooltip}
+                    ${hoverAreas}
+                </g>
+            </svg>
+        </div>
+    `;
+}
 
 /**
  * Generates the HTML for the detailed, step-by-step roadmap view.
@@ -643,3 +803,88 @@ function generateSummaryText(steps, t) {
         }
     }).join('\n');
 }
+
+/**
+ * Shows Graph Tooltip
+ */
+window.showGraphTooltip = function(evt, index, circleElem) {
+    const config = window.activeGraphConfig;
+    const point = config.data[index];
+
+    // Find the specific SVG container we are hovering inside
+    const svg = circleElem.closest('svg');
+    const tooltip = svg.querySelector('.graph-tooltip');
+    const tooltipBg = svg.querySelector('.tooltip-bg');
+    const tooltipText = svg.querySelector('.tooltip-text');
+    const tooltipXp = svg.querySelector('.tooltip-xp');
+    const tooltipStat = svg.querySelector('.tooltip-stat');
+    const tooltipRanksHeader = svg.querySelector('.tooltip-ranks-header');
+
+    // Clear previously generated rank tspan elements
+    while (tooltipRanksHeader.nextSibling) {
+        tooltipText.removeChild(tooltipRanksHeader.nextSibling);
+    }
+
+    // Populate data
+    tooltipXp.textContent = `${config.t.graphXAxis}: ${point.x.toLocaleString()}`;
+    if (point.step > 0) {
+        tooltipStat.textContent = `${config.statName}: +${point.y.toLocaleString()}`;
+        tooltipStat.setAttribute('visibility', 'visible');
+    } else {
+        tooltipStat.setAttribute('visibility', 'hidden');
+    }
+    
+    let rankLines = 0;
+    Object.keys(point.ranks).forEach(charName => {
+        const shortName = config.shortNames[charName] || charName;
+        const rank = point.ranks[charName];
+        
+        const tspan = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+        tspan.setAttribute("x", 15);
+        tspan.setAttribute("dy", "1.2em");
+        tspan.textContent = `${shortName}: ${rank}`;
+        tooltipText.appendChild(tspan);
+        
+        rankLines++;
+    });
+
+    // Get the dimensions of the populated text to calculate the required size for the tooltip box.
+    const textMetrics = tooltipText.getBBox();
+    const padding = 10;
+
+    // Calculate the new width. It's the text's starting X position, plus its calculated width, plus padding.
+    const newWidth = textMetrics.x + textMetrics.width + padding;
+    tooltipBg.setAttribute('width', newWidth);
+
+    // Calculate the new height. This is more robust than counting lines with magic numbers.
+    const newHeight = textMetrics.y + textMetrics.height + padding;
+    tooltipBg.setAttribute('height', newHeight);
+
+    // Calculate position
+    const pointX = evt.target.cx.baseVal.value;
+    let x = pointX + 15;
+    let y = evt.target.cy.baseVal.value - (newHeight / 2);
+    
+    // Prevent clipping off the right edge of the graph, using the new dynamic width
+    if (x + newWidth > config.graphWidth) {
+        x = pointX - newWidth - 15;
+    }
+
+    tooltip.setAttribute('transform', `translate(${x}, ${y})`);
+    tooltip.setAttribute('visibility', 'visible');
+};
+
+window.hideGraphTooltip = function(circleElem) {
+    const svg = circleElem.closest('svg');
+    if (!svg) return;
+    const tooltip = svg.querySelector('.graph-tooltip');
+    if (tooltip) {
+        tooltip.setAttribute('visibility', 'hidden');
+        // As a safeguard, also explicitly hide the stat line. This prevents it from
+        // occasionally being "stuck" on screen if mouseout events fire in an unusual order.
+        const tooltipStat = svg.querySelector('.tooltip-stat');
+        if (tooltipStat) {
+            tooltipStat.setAttribute('visibility', 'hidden');
+        }
+    }
+};
