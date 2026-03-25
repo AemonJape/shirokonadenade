@@ -93,4 +93,4 @@ def process_csv_to_hierarchical_json(stats_csv, loc_csv, json_filepath):
         print(f"Error: Missing column in Stats CSV - {e}. Check your headers!")
 
 # Run the script
-process_csv_to_hierarchical_json('./backend/raw_bond_data.csv', './backend/raw_lang_names.csv', './bond_data.json')
+process_csv_to_hierarchical_json('./backend/raw_bond_data.csv', './backend/raw_lang_names.csv', './docs/bond_data.json')
