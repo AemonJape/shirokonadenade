@@ -5,17 +5,70 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bond Stat Optimizer</title>
     <style>
-        /* A little quick CSS so it isn't completely unstyled */
-        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
-        .alt-card { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; border-radius: 5px; transition: opacity 0.2s ease, background-color 0.2s ease; }
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #212529;
+            --secondary-text-color: #555;
+            --border-color: #ccc;
+            --accent-color: #007bff;
+            --accent-hover-color: #0056b3;
+            --controls-bg-color: #f0f0f0;
+            --card-bg-color: #ffffff;
+            --card-deselected-bg-color: #fafafa;
+            --tie-bg-color: #fffcf2;
+            --tie-border-color: #f0ad4e;
+            --tie-header-color: #d58512;
+            --box-shadow-color: rgba(0,0,0,0.1);
+            --link-color: #007bff;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #1a1a1a;
+                --text-color: #e0e0e0;
+                --secondary-text-color: #a0a0a0;
+                --border-color: #444;
+                --accent-color: #0d6efd;
+                --accent-hover-color: #0b5ed7;
+                --controls-bg-color: #2c2c2c;
+                --card-bg-color: #222;
+                --card-deselected-bg-color: #282828;
+                --tie-bg-color: #332e22;
+                --tie-border-color: #a17434;
+                --tie-header-color: #f0ad4e;
+                --box-shadow-color: rgba(255,255,255,0.05);
+                --link-color: #4dabf7;
+            }
+        }
+
+        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; background-color: var(--bg-color); color: var(--text-color); }
+        .alt-card { border: 1px solid var(--border-color); padding: 10px; margin-bottom: 10px; border-radius: 5px; transition: opacity 0.2s ease, background-color 0.2s ease; background-color: var(--card-bg-color); }
         .alt-card.deselected {
             opacity: 0.6;
-            background-color: #fafafa;
+            background-color: var(--card-deselected-bg-color);
         }
-        .controls { margin-bottom: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px; }
-        select, input, button { margin-top: 5px; padding: 8px; width: 100%; box-sizing: border-box;}
-        button { background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; margin-top: 15px;}
-        button:hover { background: #0056b3; }
+        .controls { margin-bottom: 20px; padding: 15px; background: var(--controls-bg-color); border-radius: 5px; }
+        select, input { margin-top: 5px; padding: 8px; width: 100%; box-sizing: border-box; background-color: var(--card-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; }
+        button { background: var(--accent-color); color: white; border: none; cursor: pointer; font-weight: bold; margin-top: 15px; padding: 8px; width: 100%; box-sizing: border-box; border-radius: 4px; }
+        button:hover:not(:disabled) { background: var(--accent-hover-color); }
+        button:disabled { opacity: 0.7; cursor: not-allowed; }
+        .btn-inline { width: auto; padding: 5px 10px; margin: 0; }
+        h1 { white-space: pre-line; }
+        a { color: var(--link-color); }
+        hr { border: none; border-top: 1px solid var(--border-color); margin: 20px 0; }
+
+        /* Roadmap Results Styling */
+        .roadmap-step { margin-bottom: 12px; padding: 12px; border-left-width: 4px; border-left-style: solid; border-radius: 4px; box-shadow: 0 1px 3px var(--box-shadow-color); background-color: var(--card-bg-color); }
+        .roadmap-step.standard { border-left-color: var(--accent-color); }
+        .roadmap-step.tie { background: var(--tie-bg-color); border-left-color: var(--tie-border-color); }
+        .roadmap-step h4 { margin: 0 0 6px 0; }
+        .roadmap-step.tie h4 { color: var(--tie-header-color); }
+        .roadmap-step .details { font-size: 0.95em; }
+        .roadmap-step .meta { font-size: 0.85em; color: var(--secondary-text-color); margin-top: 6px; }
+        .roadmap-step.tie .instruction { font-size: 0.85em; margin: 0 0 10px 0; color: var(--secondary-text-color); }
+        .tie-option { margin-left: 15px; border-left: 2px solid var(--border-color); padding-left: 10px; margin-bottom: 5px; }
+        .tie-separator { margin-left: 15px; font-weight: bold; color: var(--secondary-text-color); font-size: 0.85em; margin-bottom: 5px; }
+        pre { background-color: var(--controls-bg-color); padding: 10px; border-radius: 4px; color: var(--text-color); white-space: pre-wrap; word-break: break-word; }
     </style>
 </head>
 <body>
@@ -23,7 +76,7 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
         <a href="https://github.com/AemonJape/shirokonadenade/issues" target="_blank" rel="noopener noreferrer" data-i18n="reportIssue">문제 보고</a>
         <div>
-            <span data-i18n="languageLabel">Language:</span>&nbsp;<select id="langSelect" style="width: auto; padding: 5px;">
+            <span data-i18n="languageLabel">Language:</span>&nbsp;<select id="langSelect" class="btn-inline">
                 <option value="kr">한국어</option>
                 <option value="en">English</option>
                 <option value="jp">日本語</option>
@@ -31,7 +84,8 @@
         </div>
     </div>
 
-    <h1 data-i18n="title">이격 인연작 최적화</h1>
+    <h1 data-i18n="title">블루 아카이브
+        이격 인연작 최적화 계산기</h1>
 
     <div class="controls">
         <label data-i18n="baseChar">원본 학생:</label>

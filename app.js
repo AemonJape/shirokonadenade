@@ -18,7 +18,7 @@ let currentLang = 'kr';
 
 const uiTranslations = {
     kr: {
-        title: "이격 인연작 최적화",
+        title: "블루 아카이브\n이격 인연작 최적화 계산기",
         baseChar: "원본 학생:",
         selectChar: "-- 학생 선택 --",
         targetStat: "목표 스탯:",
@@ -31,14 +31,18 @@ const uiTranslations = {
         roadmapTitle: "최적의 스탯 인연작 로드맵",
         totalXp: "총 필요 인연 XP:",
         totalStatGain: "총 {stat} 상승량:",
-        allMaxRank: "선택한 모든 학생이 이미 최대 랭크입니다!",
+        allMaxRank: "획득 가능한 보너스 스탯이 없습니다!",
         step: "단계",
         tieTitle: "동순위 (한 쪽을 먼저)",
         tieInstruction: "가치가 동일한 부분입니다. <strong>초대권, 선물 등을 분산시키지 마세요.</strong> 목표 랭크에 도달할 때까지 한 학생에게 집중한 다음, 다음 학생으로 넘어가세요.",
         tieOr: "— 또는 —",
         rank: "인연랭",
         currentRank: "현 인연 랭크",
-        stars: "성급",
+        stars: "성급:",
+        star12: "★~★★",
+        star3: "★★★",
+        star4: "★★★★",
+        star5: "★★★★★",
         levelUpFrom: "다음 랭크로 레벨 업:",
         summaryViewBtn: "요약 보기",
         detailsViewBtn: "상세 보기",
@@ -47,9 +51,11 @@ const uiTranslations = {
         notInclude: "미보유",
         reportIssue: "문제 보고",
         languageLabel: "Language:",
+        copyBtn: "복사",
+        copiedBtn: "복사됨!",
     },
     en: {
-        title: "Bond Rank Bonus Stat Optimizer\nfor Students with Alts",
+        title: "Blue Archive\nBond Rank Bonus Stat Optimizer for Students with Alts",
         baseChar: "Base Student:",
         selectChar: "-- Select Student --",
         targetStat: "Target Stat:",
@@ -62,14 +68,18 @@ const uiTranslations = {
         roadmapTitle: "Complete Optimal Roadmap to Rank 50",
         totalXp: "Total XP Required:",
         totalStatGain: "Total {stat} Gain:",
-        allMaxRank: "All selected students are already at maximum rank!",
+        allMaxRank: "No earnable Bonus Stats are available!",
         step: "Step",
         tieTitle: "Tied Priority (Prioritize One First)",
         tieInstruction: "These upgrades have identical value. <strong>Do not split your gifts or invites.</strong> Focus all XP on one student until they hit the target rank, then move on to the next.",
         tieOr: "— OR —",
         rank: "Bond",
         currentRank: "Current Bond Rank",
-        stars: "Stars",
+        stars: "Stars:",
+        star12: "★ or ★★",
+        star3: "★★★",
+        star4: "★★★★",
+        star5: "★★★★★",
         levelUpFrom: "Level up from",
         summaryViewBtn: "Summarize",
         detailsViewBtn: "Show Details",
@@ -78,12 +88,14 @@ const uiTranslations = {
         notInclude: "Don't Have",
         reportIssue: "Report an Issue",
         languageLabel: "Language:",
+        copyBtn: "Copy",
+        copiedBtn: "Copied!",
     },
     jp: {
-        title: "絆ランクボーナス最適化\n他の衣装をある生徒のため",
+        title: "ブルーアーカイブ\n絆ランクボーナス最適化\n他の衣装がある生徒のため",
         baseChar: "元衣装の生徒:",
         selectChar: "-- 生徒選択 --",
-        targetStat: "目標ステータス:",
+        targetStat: "目標ステータス：",
         statAtk: "攻撃力",
         statHp: "最大HP",
         statHeal: "治癒力",
@@ -91,17 +103,21 @@ const uiTranslations = {
         calcBtn: "最適化ルート計算",
         alertNoChars: "少なくとも一人の生徒を選択してください！",
         roadmapTitle: "絆ランク50への完全最適化ロードマップ",
-        totalXp: "総必要絆XP:",
-        totalStatGain: "総{stat}上昇量:",
-        allMaxRank: "選択された生徒は全員、すでに最大ランクです！",
+        totalXp: "総必要絆XP：",
+        totalStatGain: "総{stat}上昇量：",
+        allMaxRank: "取得可能なボーナスステータスはありません！",
         step: "ステップ",
         tieTitle: "同順位（まず一つを）",
         tieInstruction: "これらのアップグレードは価値が同じです。<strong>招待、贈り物を分散させないでください。</strong>目標ランクに到達するまで一人の生徒に全てのXPを集中させ、その後次に進んでください。",
         tieOr: "— または —",
         rank: "絆",
         currentRank: "現絆ランク",
-        stars: "星",
-        levelUpFrom: "レベルアップ:",
+        stars: "星：",
+        star12: "★～★★",
+        star3: "★★★",
+        star4: "★★★★",
+        star5: "★★★★★",
+        levelUpFrom: "レベルアップ：",
         summaryViewBtn: "要約表示",
         detailsViewBtn: "詳細表示",
         summaryTied: "同順位",
@@ -109,6 +125,8 @@ const uiTranslations = {
         notInclude: "未所属",
         reportIssue: "問題を報告",
         languageLabel: "Language:",
+        copyBtn: "コピー",
+        copiedBtn: "コピーしました！",
     }
 };// Function to update all static HTML text
 function updateStaticUI() {
@@ -203,18 +221,18 @@ document.getElementById('baseCharSelect').addEventListener('change', (e) => {
                     <strong>${student.names.full[currentLang]}</strong>
                     <span id="include-status-${altId}" style="font-size: 0.8em; color: #888; margin-left: 8px;">(${t.include})</span>
                 </label>
-                <div style="margin-top: 8px; display: flex; gap: 15px;">
-                    <div>
-                        <label for="rank-${altId}">${t.currentRank}:</label>
-                        <input type="number" class="alt-rank" id="rank-${altId}" value="1" min="1" max="49" style="width: 80px;">
+                <div style="margin-top: 8px; display: flex; gap: 15px; align-items: flex-end;">
+                    <div style="flex: 1;">
+                        <label for="rank-${altId}">${t.currentRank}</label>
+                        <input type="number" class="alt-rank" id="rank-${altId}" value="1" min="1" max="49">
                     </div>
-                    <div>
-                        <label for="stars-${altId}">${t.stars}:</label>
-                        <select class="alt-stars" id="stars-${altId}" style="width: 120px;">
-                            <option value="2">★/★★</option>
-                            <option value="3">★★★</option>
-                            <option value="4">★★★★</option>
-                            <option value="5" selected>★★★★★</option>
+                    <div style="flex: 1;">
+                        <label for="stars-${altId}">${t.stars}</label>
+                        <select class="alt-stars" id="stars-${altId}">
+                            <option value="2">${t.star12}</option>
+                            <option value="3">${t.star3}</option>
+                            <option value="4">${t.star4}</option>
+                            <option value="5" selected>${t.star5}</option>
                         </select>
                     </div>
                 </div>
@@ -361,7 +379,7 @@ document.getElementById('calcButton').addEventListener('click', () => {
     resultsDiv.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <h3>${t.roadmapTitle}</h3>
-            <button id="summaryToggleBtn" style="width: auto; padding: 5px 10px; margin: 0;">${t.summaryViewBtn}</button>
+            <button id="summaryToggleBtn" class="btn-inline">${t.summaryViewBtn}</button>
         </div>
         <p>${t.totalXp} <strong>${displayTotalCost}</strong></p>
         <p>${t.totalStatGain.replace('{stat}', statName)} <strong>+${rawRoadmapData.totalGain}</strong></p>
@@ -376,8 +394,26 @@ document.getElementById('calcButton').addEventListener('click', () => {
     toggleBtn.addEventListener('click', () => {
         const isShowingDetails = stepsContainer.querySelector('pre') === null;
         if (isShowingDetails) {
-            stepsContainer.innerHTML = `<pre style="white-space: pre-wrap; word-break: break-word;">${summaryText}</pre>`;
+            stepsContainer.innerHTML = `
+                <pre>${summaryText}</pre>
+                <button id="copySummaryBtn" class="btn-inline" style="margin-top: 10px;">${t.copyBtn}</button>
+            `;
             toggleBtn.textContent = t.detailsViewBtn;
+
+            // Add event listener for the new copy button
+            document.getElementById('copySummaryBtn').addEventListener('click', (e) => {
+                navigator.clipboard.writeText(summaryText).then(() => {
+                    const copyBtn = e.target;
+                    const originalText = copyBtn.textContent;
+                    copyBtn.textContent = t.copiedBtn;
+                    copyBtn.disabled = true;
+                    setTimeout(() => {
+                        copyBtn.textContent = originalText;
+                        copyBtn.disabled = false;
+                    }, 1500); // Revert back after 1.5 seconds
+                }).catch(err => console.error('Failed to copy text: ', err));
+            });
+
         } else {
             stepsContainer.innerHTML = detailedHtml;
             toggleBtn.textContent = t.summaryViewBtn;
@@ -561,16 +597,16 @@ function generateDetailedHtml(steps, t, statName) {
     steps.forEach(step => {
         if (step.isTieGroup) {
             let optionsHtml = step.options.map(opt => `
-                <div style="margin-left: 15px; border-left: 2px solid #ddd; padding-left: 10px; margin-bottom: 5px;">
+                <div class="tie-option">
                     <strong>${opt.name}:</strong> ${t.rank} ${opt.startRank} ➡ <strong>${t.rank} ${opt.targetRank}</strong>
-                    <br><span style="font-size: 0.85em; color: #555;">${opt.cost} XP | ${statName} +${opt.gain}</span>
+                    <div class="meta">${opt.cost} XP | ${statName} +${opt.gain}</div>
                 </div>
-            `).join(`<div style="margin-left: 15px; font-weight: bold; color: #888; font-size: 0.85em; margin-bottom: 5px;">${t.tieOr}</div>`);
+            `).join(`<div class="tie-separator">${t.tieOr}</div>`);
 
             html += `
-                <div style="margin-bottom: 12px; padding: 12px; background: #fffcf2; border-left: 4px solid #f0ad4e; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                    <h4 style="margin: 0 0 6px 0; color: #d58512;">${t.step} ${currentStepNum}: ${t.tieTitle}</h4>
-                    <p style="font-size: 0.85em; margin: 0 0 10px 0; color: #666;">
+                <div class="roadmap-step tie">
+                    <h4>${t.step} ${currentStepNum}: ${t.tieTitle}</h4>
+                    <p class="instruction">
                         ${t.tieInstruction}
                     </p>
                     ${optionsHtml}
@@ -578,12 +614,12 @@ function generateDetailedHtml(steps, t, statName) {
             `;
         } else {
             html += `
-                <div style="margin-bottom: 12px; padding: 12px; background: #fdfdfd; border-left: 4px solid #007bff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                    <h4 style="margin: 0 0 6px 0;">${t.step} ${currentStepNum}: ${step.name}</h4>
-                    <div style="font-size: 0.95em;">
+                <div class="roadmap-step standard">
+                    <h4>${t.step} ${currentStepNum}: ${step.name}</h4>
+                    <div class="details">
                         ${t.levelUpFrom} ${t.rank} ${step.startRank} ➡ <strong>${t.rank} ${step.targetRank}</strong>
                     </div>
-                    <div style="font-size: 0.85em; color: #555; margin-top: 6px;">
+                    <div class="meta">
                         ${step.cost} XP | ${statName} +${step.gain}
                     </div>
                 </div>
