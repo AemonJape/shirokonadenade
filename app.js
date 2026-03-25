@@ -1,11 +1,142 @@
 // --- CONSTANTS & GAME DATA ---
 const BREAKPOINTS = [2, 6, 11, 16, 21, 31, 41];
 
-// Make sure to fill this array with the exact XP costs for levels 2 through 50!
 // Index 0 and 1 are 0. Index 2 is cost from 1->2. 
 const xpCostToNext = [0, 0, 15, 30, 30, 35, 35, 35, 40, 40, 40, 60, 90, 105, 120, 140, 160, 180, 205, 230, 255, 285, 315, 345, 375, 410, 445, 480, 520, 560, 600, 645, 690, 735, 780, 830, 880, 930, 985, 1040, 1095, 1155, 1215, 1275, 1335, 1400, 1465, 1530, 1600, 1670, 1740];
 
 let database = null;
+
+// --- 0. LOCALIZATION STATE & DICTIONARY ---
+let currentLang = 'kr';
+
+const uiTranslations = {
+    kr: {
+        title: "인연작 스탯 최적화",
+        baseChar: "원본 학생:",
+        selectChar: "-- 학생 선택 --",
+        targetStat: "목표 스탯:",
+        statAtk: "공격력",
+        statHp: "최대 체력",
+        statHeal: "치유력",
+        calcBtn: "최적화 계획 산출",
+        alertNoChars: "최소 한 명의 학생을 선택해주세요!",
+        roadmapTitle: "최적의 스탯 인연작 로드맵",
+        totalXp: "총 필요 인연 XP:",
+        totalStatGain: "총 {stat} 상승량:",
+        allMaxRank: "선택한 모든 학생이 이미 최대 랭크입니다!",
+        step: "단계",
+        tieTitle: "동일 순위 (한 쪽을 먼저)",
+        tieInstruction: "이 업그레이드는 가치가 동일합니다. <strong>초대권, 선물 등을 분산시키지 마세요.</strong> 목표 랭크에 도달할 때까지 한 학생에게 집중한 다음, 다음 학생으로 넘어가세요.",
+        tieOr: "— 또는 —",
+        rank: "인연랭",
+        currentRank: "현 인연 랭크",
+        cost: "비용:",
+        gain: "상승량:",
+        levelUpFrom: "다음 랭크로 레벨 업:",
+    },
+    en: {
+        title: "Bond Rank Bonus Optimizer",
+        baseChar: "Base Student:",
+        selectChar: "-- Select Student --",
+        targetStat: "Target Stat:",
+        statAtk: "ATK",
+        statHp: "Max HP",
+        statHeal: "Healing",
+        calcBtn: "Generate Optimal Bond Roadmap",
+        alertNoChars: "Please select at least one character!",
+        roadmapTitle: "Complete Optimal Roadmap to Rank 50",
+        totalXp: "Total XP Required:",
+        totalStatGain: "Total {stat} Gain:",
+        allMaxRank: "All selected students are already at maximum rank!",
+        step: "Step",
+        tieTitle: "Tied Priority (Prioritize One First)",
+        tieInstruction: "These upgrades have identical value. <strong>Do not split your gifts or invites.</strong> Focus all XP on one student until they hit the target rank, then move on to the next.",
+        tieOr: "— OR —",
+        rank: "Bond",
+        currentRank: "Current Bond Rank",
+        cost: "Cost:",
+        gain: "Gain:",
+        levelUpFrom: "Level up from",
+    },
+    jp: {
+        title: "絆ランクボーナス最適化",
+        baseChar: "元衣装の生徒:",
+        selectChar: "-- 生徒選択 --",
+        targetStat: "目標ステータス:",
+        statAtk: "攻撃力",
+        statHp: "最大HP",
+        statHeal: "治癒力",
+        calcBtn: "最適化ルート計算",
+        alertNoChars: "少なくとも一人の生徒を選択してください！",
+        roadmapTitle: "絆ランク50への完全最適化ロードマップ",
+        totalXp: "総必要絆XP:",
+        totalStatGain: "総{stat}上昇量:",
+        allMaxRank: "選択された生徒は全員、すでに最大ランクです！",
+        step: "ステップ",
+        tieTitle: "同順位（1つを先に）",
+        tieInstruction: "これらのアップグレードは価値が同じです。<strong>招待、贈り物を分散させないでください。</strong>目標ランクに到達するまで一人の生徒に全てのXPを集中させ、その後次に進んでください。",
+        tieOr: "— または —",
+        rank: "絆",
+        currentRank: "現絆ランク",
+        cost: "コスト:",
+        gain: "上昇量:",
+        levelUpFrom: "レベルアップ:",
+    }
+};// Function to update all static HTML text
+function updateStaticUI() {
+    const elements = document.querySelectorAll('[data-i18n]');
+    elements.forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (uiTranslations[currentLang][key]) {
+            el.textContent = uiTranslations[currentLang][key];
+        }
+    });
+}
+
+// Listen for language dropdown changes
+document.getElementById('langSelect').addEventListener('change', (e) => {
+    currentLang = e.target.value;
+    updateStaticUI();
+    
+    // Re-render the base character dropdown so names translate
+    if (database) populateBaseDropdown();
+    
+    // Re-render the character input cards if a base character is already selected
+    const baseSelect = document.getElementById('baseCharSelect');
+    if (baseSelect.value) {
+        // Trigger the 'change' event manually to redraw the inputs
+        baseSelect.dispatchEvent(new Event('change'));
+    }
+    
+    // Clear old results to prevent language mixing
+    document.getElementById('results').innerHTML = ''; 
+});
+
+function populateBaseDropdown() {
+    const select = document.getElementById('baseCharSelect');
+    
+    // Save the currently selected value so it doesn't reset when changing languages
+    const currentValue = select.value; 
+    
+    // Clear existing options except the placeholder
+    select.innerHTML = `<option value="" data-i18n="selectChar">${uiTranslations[currentLang].selectChar}</option>`;
+    
+    const sortedBases = Object.keys(database).sort();
+    
+    sortedBases.forEach(baseId => {
+        let option = document.createElement('option');
+        option.value = baseId;
+        
+        // Use the translated name of the first character in this group
+        const firstAltKey = Object.keys(database[baseId])[0];
+        const localizedName = database[baseId][firstAltKey].names[currentLang];
+        
+        option.textContent = localizedName;
+        select.appendChild(option);
+    });
+    
+    select.value = currentValue; // Restore selection
+}
 
 // --- 1. INITIALIZATION ---
 // Fetch the JSON file when the page loads
@@ -16,20 +147,6 @@ fetch('bond_data.json')
         populateBaseDropdown();
     })
     .catch(error => console.error("Error loading JSON:", error));
-
-function populateBaseDropdown() {
-    const select = document.getElementById('baseCharSelect');
-    // Sort keys alphabetically so the dropdown is organized
-    const sortedBases = Object.keys(database).sort();
-    
-    sortedBases.forEach(baseId => {
-        let option = document.createElement('option');
-        option.value = baseId;
-        // Capitalize the first letter for the display name
-        option.textContent = baseId.charAt(0).toUpperCase() + baseId.slice(1);
-        select.appendChild(option);
-    });
-}
 
 // --- 2. UI EVENT LISTENERS ---
 // When the user selects a character, generate the input fields
@@ -45,6 +162,7 @@ document.getElementById('baseCharSelect').addEventListener('change', (e) => {
     }
 
     const alts = database[selectedBase];
+    const t = uiTranslations[currentLang];
     
     for (const altId in alts) {
         const student = alts[altId];
@@ -54,10 +172,10 @@ document.getElementById('baseCharSelect').addEventListener('change', (e) => {
             <div class="alt-card">
                 <label>
                     <input type="checkbox" class="alt-toggle" data-id="${altId}" checked>
-                    <strong>${student.name}</strong>
+                    <strong>${student.names[currentLang]}</strong> 
                 </label>
                 <div style="margin-top: 8px;">
-                    <label>Current Rank:</label>
+                    <label>${t.currentRank}:</label>
                     <input type="number" class="alt-rank" id="rank-${altId}" value="1" min="1" max="49">
                 </div>
             </div>
@@ -99,6 +217,15 @@ document.getElementById('calcButton').addEventListener('click', () => {
     const selectedBase = document.getElementById('baseCharSelect').value;
     const targetStat = document.getElementById('statSelect').value;
     const activeToggles = document.querySelectorAll('.alt-toggle:checked');
+
+    // Get current translations and localized stat name
+    const t = uiTranslations[currentLang];
+    const statKeyMap = {
+        atk: 'statAtk',
+        hp: 'statHp',
+        healing: 'statHeal'
+    };
+    const statName = t[statKeyMap[targetStat]];
     
     let activeAlts = [];
     activeToggles.forEach(toggle => {
@@ -107,38 +234,51 @@ document.getElementById('calcButton').addEventListener('click', () => {
         const compactStats = database[selectedBase][altId].bonuses[targetStat];
         
         activeAlts.push({
-            name: database[selectedBase][altId].name,
+            name: database[selectedBase][altId].names[currentLang],
             currentRank: currentRank,
             statArray: expandStatData(compactStats)
         });
     });
 
     if (activeAlts.length === 0) {
-        alert("Please select at least one character!");
+        alert(t.alertNoChars);
         return;
     }
 
     // Generate the raw path, then compress it
     const rawRoadmapData = generateFullRoadmap(activeAlts, 50);
-    const cleanedSteps = compressRoadmap(rawRoadmapData.steps);
+    let cleanedSteps = compressRoadmap(rawRoadmapData.steps);
+
+    // Filter out steps that provide no stat gain for the target stat.
+    const gainfulSteps = cleanedSteps.filter(step => {
+        if (step.isTieGroup) {
+            // Tie groups have their efficiency calculated. If it's 0, gain is 0.
+            return step.efficiency > 0;
+        }
+        // Standard steps have a direct gain property.
+        return step.gain > 0;
+    });
+
+    // Recalculate total cost for only the steps being shown.
+    const displayTotalCost = gainfulSteps.reduce((total, step) => total + step.cost, 0);
 
     // Print Headers
     const resultsDiv = document.getElementById('results');
     resultsDiv.innerHTML = `
-        <h3>Complete Optimal Roadmap to Rank 50</h3>
-        <p>Total XP Required: <strong>${rawRoadmapData.totalCost}</strong></p>
-        <p>Total ${targetStat.toUpperCase()} Gain: <strong>+${rawRoadmapData.totalGain}</strong></p>
+        <h3>${t.roadmapTitle}</h3>
+        <p>${t.totalXp} <strong>${displayTotalCost}</strong></p>
+        <p>${t.totalStatGain.replace('{stat}', statName)} <strong>+${rawRoadmapData.totalGain}</strong></p>
         <hr>
     `;
 
-    if (cleanedSteps.length === 0) {
-        resultsDiv.innerHTML += `<p>All selected characters are already at maximum rank!</p>`;
+    if (gainfulSteps.length === 0) {
+        resultsDiv.innerHTML += `<p>${t.allMaxRank}</p>`;
         return;
     }
 
     // Render the Timeline
     let currentStepNum = 1;
-    cleanedSteps.forEach(step => {
+    gainfulSteps.forEach(step => {
         
         if (step.isTieGroup) {
             // --- RENDER A TIE GROUP (OR CLAUSE) ---
@@ -146,16 +286,16 @@ document.getElementById('calcButton').addEventListener('click', () => {
             // Build the HTML for each tied option
             let optionsHtml = step.options.map(opt => `
                 <div style="margin-left: 15px; border-left: 2px solid #ddd; padding-left: 10px; margin-bottom: 5px;">
-                    <strong>${opt.name}:</strong> Rank ${opt.startRank} ➡ <strong>Rank ${opt.targetRank}</strong>
-                    <br><span style="font-size: 0.85em; color: #555;">Cost: ${opt.cost} XP | Gain: +${opt.gain}</span>
+                    <strong>${opt.name}:</strong> ${t.rank} ${opt.startRank} ➡ <strong>${t.rank} ${opt.targetRank}</strong>
+                    <br><span style="font-size: 0.85em; color: #555;">${t.cost} ${opt.cost} XP | ${t.gain} +${opt.gain} ${statName}</span>
                 </div>
-            `).join('<div style="margin-left: 15px; font-weight: bold; color: #888; font-size: 0.85em; margin-bottom: 5px;">— OR —</div>');
+            `).join(`<div style="margin-left: 15px; font-weight: bold; color: #888; font-size: 0.85em; margin-bottom: 5px;">${t.tieOr}</div>`);
 
             resultsDiv.innerHTML += `
                 <div style="margin-bottom: 12px; padding: 12px; background: #fffcf2; border-left: 4px solid #f0ad4e; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                    <h4 style="margin: 0 0 6px 0; color: #d58512;">Step ${currentStepNum}: Tied Priority (Pick One)</h4>
+                    <h4 style="margin: 0 0 6px 0; color: #d58512;">${t.step} ${currentStepNum}: ${t.tieTitle}</h4>
                     <p style="font-size: 0.85em; margin: 0 0 10px 0; color: #666;">
-                        These upgrades have identical value. <strong>Do not split your gifts.</strong> Focus all XP on one character until they hit the target rank, then move to the next.
+                        ${t.tieInstruction}
                     </p>
                     ${optionsHtml}
                 </div>
@@ -163,17 +303,15 @@ document.getElementById('calcButton').addEventListener('click', () => {
             
         } else {
             // --- RENDER A STANDARD STEP ---
-            let efficiencyWarning = step.gain === 0 ? `<br><span style="color: #d9534f; font-size: 0.85em;">⚠️ Note: No ${targetStat.toUpperCase()} gained. Do this last.</span>` : '';
-            
+            // The efficiency warning is removed as zero-gain steps are now filtered out.
             resultsDiv.innerHTML += `
                 <div style="margin-bottom: 12px; padding: 12px; background: #fdfdfd; border-left: 4px solid #007bff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                    <h4 style="margin: 0 0 6px 0;">Step ${currentStepNum}: ${step.name}</h4>
+                    <h4 style="margin: 0 0 6px 0;">${t.step} ${currentStepNum}: ${step.name}</h4>
                     <div style="font-size: 0.95em;">
-                        Level up from <strong>Rank ${step.startRank}</strong> ➡ <strong>Rank ${step.targetRank}</strong>
+                        ${t.levelUpFrom} <strong>${t.rank} ${step.startRank}</strong> ➡ <strong>${t.rank} ${step.targetRank}</strong>
                     </div>
                     <div style="font-size: 0.85em; color: #555; margin-top: 6px;">
-                        Cost: ${step.cost} XP | Gain: +${step.gain} ${targetStat.toUpperCase()} 
-                        ${efficiencyWarning}
+                        ${t.cost} ${step.cost} XP | ${t.gain} +${step.gain} ${statName} 
                     </div>
                 </div>
             `;

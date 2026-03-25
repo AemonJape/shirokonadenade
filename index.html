@@ -16,25 +16,33 @@
 </head>
 <body>
 
-    <h1>Bond Stat Optimizer</h1>
+    <div style="text-align: right; margin-bottom: 10px;">
+        <select id="langSelect" style="width: auto; padding: 5px;">
+            <option value="kr">한국어</option>
+            <option value="en">English</option>
+            <option value="jp">日本語</option>
+        </select>
+    </div>
+
+    <h1 data-i18n="title">인연작 스탯 최적화</h1>
 
     <div class="controls">
-        <label>Base Character:</label>
+        <label data-i18n="baseChar">원본 학생:</label>
         <select id="baseCharSelect">
-            <option value="">-- Select Character --</option>
+            <option value="" data-i18n="selectChar">-- 학생 선택 --</option>
         </select>
 
-        <label>Target Stat:</label>
+        <label data-i18n="targetStat">목표 스탯:</label>
         <select id="statSelect">
-            <option value="atk">Attack (ATK)</option>
-            <option value="hp">Health (HP)</option>
-            <option value="healing">Healing</option>
+            <option value="atk" data-i18n="statAtk">공격력</option>
+            <option value="hp" data-i18n="statHp">최대 체력</option>
+            <option value="healing" data-i18n="statHeal">치유력</option>
         </select>
     </div>
 
     <div id="altsContainer"></div>
 
-    <button id="calcButton" style="display:none;">Generate Upgrade Priority List</button>
+    <button id="calcButton" style="display:none;" data-i18n="calcBtn">최적화 계획 산출</button>
 
     <div id="results" style="margin-top: 20px;"></div>
 
