@@ -19,7 +19,7 @@ let currentLang = 'kr';
 
 const uiTranslations = {
     kr: {
-        title: "인연작 스탯 최적화",
+        title: "이격 인연작 최적화",
         baseChar: "원본 학생:",
         selectChar: "-- 학생 선택 --",
         targetStat: "목표 스탯:",
@@ -39,15 +39,17 @@ const uiTranslations = {
         rank: "인연랭",
         currentRank: "현 인연 랭크",
         stars: "성급",
-        cost: "비용:",
-        gain: "상승량:",
         levelUpFrom: "다음 랭크로 레벨 업:",
         summaryViewBtn: "요약 보기",
         detailsViewBtn: "상세 보기",
         summaryTied: "Tie",
+        include: "보유",
+        notInclude: "미보유",
+        reportIssue: "문제 보고",
+        languageLabel: "언어:",
     },
     en: {
-        title: "Bond Rank Bonus Optimizer",
+        title: "Bond Rank Bonus Stat Optimizer\nfor Students with Alts",
         baseChar: "Base Student:",
         selectChar: "-- Select Student --",
         targetStat: "Target Stat:",
@@ -67,15 +69,17 @@ const uiTranslations = {
         rank: "Bond",
         currentRank: "Current Bond Rank",
         stars: "Stars",
-        cost: "Cost:",
-        gain: "Gain:",
         levelUpFrom: "Level up from",
         summaryViewBtn: "Summarize",
         detailsViewBtn: "Show Details",
         summaryTied: "Tied",
+        include: "Have",
+        notInclude: "Don't Have",
+        reportIssue: "Report an Issue",
+        languageLabel: "Language:",
     },
     jp: {
-        title: "絆ランクボーナス最適化",
+        title: "絆ランクボーナス最適化\n他の衣装をある生徒のため",
         baseChar: "元衣装の生徒:",
         selectChar: "-- 生徒選択 --",
         targetStat: "目標ステータス:",
@@ -95,12 +99,14 @@ const uiTranslations = {
         rank: "絆",
         currentRank: "現絆ランク",
         stars: "星",
-        cost: "コスト:",
-        gain: "上昇量:",
         levelUpFrom: "レベルアップ:",
         summaryViewBtn: "要約表示",
         detailsViewBtn: "詳細表示",
         summaryTied: "同順位",
+        include: "所属",
+        notInclude: "未所属",
+        reportIssue: "問題を報告",
+        languageLabel: "言語:",
     }
 };// Function to update all static HTML text
 function updateStaticUI() {
@@ -192,7 +198,8 @@ document.getElementById('baseCharSelect').addEventListener('change', (e) => {
             <div class="alt-card">
                 <label>
                     <input type="checkbox" class="alt-toggle" data-id="${altId}" checked>
-                    <strong>${student.names.full[currentLang]}</strong> 
+                    <strong>${student.names.full[currentLang]}</strong>
+                    <span id="include-status-${altId}" style="font-size: 0.8em; color: #888; margin-left: 8px;">(${t.include})</span>
                 </label>
                 <div style="margin-top: 8px; display: flex; gap: 15px;">
                     <div>
@@ -233,6 +240,19 @@ document.getElementById('altsContainer').addEventListener('change', (e) => {
 
         if (parseInt(rankInput.value) > inputMax) {
             rankInput.value = inputMax;
+        }
+    }
+
+    // When a student is toggled, grey out the card and update text
+    if (e.target.classList.contains('alt-toggle')) {
+        const card = e.target.closest('.alt-card');
+        const altId = e.target.getAttribute('data-id');
+        const statusSpan = document.getElementById(`include-status-${altId}`);
+        const t = uiTranslations[currentLang];
+
+        if (card && statusSpan) {
+            card.classList.toggle('deselected', !e.target.checked);
+            statusSpan.textContent = e.target.checked ? `(${t.include})` : `(${t.notInclude})`;
         }
     }
 });
@@ -473,46 +493,59 @@ function generateFullRoadmap(alts) {
  * Cleans up the raw roadmap by merging consecutive steps and grouping tied efficiencies.
  */
 function compressRoadmap(rawSteps) {
-    let compressed = [];
-    
-    for (let i = 0; i < rawSteps.length; i++) {
-        let current = { ...rawSteps[i] };
-        let last = compressed[compressed.length - 1];
+    if (rawSteps.length === 0) return [];
 
-        // 1. COLLAPSE SEQUENTIAL: Merge if it's the exact same character back-to-back
-        if (last && !last.isTieGroup && last.name === current.name) {
+    // Pass 1: Collapse sequential steps for the same character that are back-to-back.
+    let sequentiallyCompressed = [];
+    sequentiallyCompressed.push({ ...rawSteps[0] });
+
+    for (let i = 1; i < rawSteps.length; i++) {
+        const current = { ...rawSteps[i] };
+        const last = sequentiallyCompressed[sequentiallyCompressed.length - 1];
+        
+        // Merge if it's the same character and the rank progression is continuous.
+        if (last.name === current.name && last.targetRank === current.startRank) {
             last.targetRank = current.targetRank;
             last.cost += current.cost;
             last.gain += current.gain;
-            last.efficiency = last.gain / last.cost; // Recalculate combined efficiency
-            continue; 
+            last.efficiency = last.cost > 0 ? last.gain / last.cost : 0;
+        } else {
+            sequentiallyCompressed.push(current);
         }
+    }
 
-        // 2. COLLAPSE TIES: Group characters ONLY if they have identical efficiency AND identical cost
-        if (last && Math.abs(last.efficiency - current.efficiency) < 0.0001 && last.cost === current.cost) {
-                    
-            // If the previous step isn't a Tie Group yet, convert it into one
-            if (!last.isTieGroup) {
-                let standaloneStep = { ...last };
-                compressed[compressed.length - 1] = {
-                    isTieGroup: true,
-                    efficiency: current.efficiency,
-                    cost: current.cost, // Track the shared cost for the group
-                    options: [standaloneStep]
-                };
-                last = compressed[compressed.length - 1];
-            }
+    // Pass 2: Collapse steps with identical cost and gain into tie groups.
+    let finalCompressed = [];
+    if (sequentiallyCompressed.length > 0) {
+        finalCompressed.push({ ...sequentiallyCompressed[0] });
+        for (let i = 1; i < sequentiallyCompressed.length; i++) {
+            const current = { ...sequentiallyCompressed[i] };
+            let last = finalCompressed[finalCompressed.length - 1];
             
-            // Add the current character to the Tie Group options
-            last.options.push(current);
-            continue;
-        }
+            const lastGain = last.isTieGroup ? last.gain : last.gain;
+            const lastCost = last.isTieGroup ? last.cost : last.cost;
 
-        // 3. Otherwise, just add it as a standard standalone step
-        compressed.push(current);
+            // Group if they have identical gain and cost.
+            if (lastGain === current.gain && lastCost === current.cost) {
+                if (!last.isTieGroup) {
+                    // Convert the previous step into a new tie group.
+                    finalCompressed[finalCompressed.length - 1] = {
+                        isTieGroup: true,
+                        efficiency: current.efficiency,
+                        gain: current.gain,
+                        cost: current.cost,
+                        options: [{ ...last }]
+                    };
+                    last = finalCompressed[finalCompressed.length - 1];
+                }
+                last.options.push(current);
+            } else {
+                finalCompressed.push(current);
+            }
+        }
     }
     
-    return compressed;
+    return finalCompressed;
 }
 
 // --- 5. VIEW RENDERING FUNCTIONS ---
@@ -528,7 +561,7 @@ function generateDetailedHtml(steps, t, statName) {
             let optionsHtml = step.options.map(opt => `
                 <div style="margin-left: 15px; border-left: 2px solid #ddd; padding-left: 10px; margin-bottom: 5px;">
                     <strong>${opt.name}:</strong> ${t.rank} ${opt.startRank} ➡ <strong>${t.rank} ${opt.targetRank}</strong>
-                    <br><span style="font-size: 0.85em; color: #555;">${t.cost} ${opt.cost} XP | ${t.gain} +${opt.gain} ${statName}</span>
+                    <br><span style="font-size: 0.85em; color: #555;">${opt.cost} XP | ${statName} +${opt.gain}</span>
                 </div>
             `).join(`<div style="margin-left: 15px; font-weight: bold; color: #888; font-size: 0.85em; margin-bottom: 5px;">${t.tieOr}</div>`);
 
@@ -546,10 +579,10 @@ function generateDetailedHtml(steps, t, statName) {
                 <div style="margin-bottom: 12px; padding: 12px; background: #fdfdfd; border-left: 4px solid #007bff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                     <h4 style="margin: 0 0 6px 0;">${t.step} ${currentStepNum}: ${step.name}</h4>
                     <div style="font-size: 0.95em;">
-                        ${t.levelUpFrom} <strong>${t.rank} ${step.startRank}</strong> ➡ <strong>${t.rank} ${step.targetRank}</strong>
+                        ${t.levelUpFrom} ${t.rank} ${step.startRank} ➡ <strong>${t.rank} ${step.targetRank}</strong>
                     </div>
                     <div style="font-size: 0.85em; color: #555; margin-top: 6px;">
-                        ${t.cost} ${step.cost} XP | ${t.gain} +${step.gain} ${statName} 
+                        ${step.cost} XP | ${statName} +${step.gain}
                     </div>
                 </div>
             `;

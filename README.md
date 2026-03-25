@@ -2,6 +2,8 @@
 
 A simple web tool to calculate the most efficient path for raising student bond ranks in *Blue Archive* to maximize stat gains.
 
+Project GitHub: https://github.com/AemonJape/shirokonadenade
+
 ## Asset Disclaimer
 
 All characters, character names, images, and other game-related assets from *Blue Archive* are the intellectual property of NEXON Games Co., Ltd. and/or their respective copyright holders. This project is a fan-made tool and is not affiliated with, endorsed, or sponsored by NEXON Games. The use of these assets is for informational and identification purposes only.
