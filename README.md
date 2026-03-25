@@ -2,7 +2,15 @@
 
 A simple web tool to calculate the most efficient path for raising student bond ranks in *Blue Archive* to maximize stat gains.
 
-Project GitHub: https://github.com/AemonJape/shirokonadenade
+## How to Use
+
+Select a student and bonus stat that you wish to earn.
+
+Then, select which alts you have, and your current bond rank for each student.
+
+The app will calculate an optimal usage route of bond XP for bonus stat gains.
+
+A summary can be produced and copied for your own memos.
 
 ## Asset Disclaimer
 
@@ -11,8 +19,6 @@ All characters, character names, images, and other game-related assets from *Blu
 ## License
 
 The code for this project is licensed under the MIT License.
-
-Copyright (c) 2024 [Your Name]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
