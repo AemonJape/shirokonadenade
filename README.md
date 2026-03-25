@@ -4,6 +4,8 @@ A simple web tool to calculate the most efficient path for raising student bond 
 
 ## How to Use
 
+Go to the site at [link](https://aemonjape.github.io/shirokonadenade/)
+
 Select a student and bonus stat that you wish to earn.
 
 Then, select which alts you have, and your current bond rank for each student.
@@ -11,6 +13,8 @@ Then, select which alts you have, and your current bond rank for each student.
 The app will calculate an optimal usage route of bond XP for bonus stat gains.
 
 A summary can be produced and copied for your own memos.
+
+I am in the process of adding students. Currently, all FES students and a few more are supported.
 
 ## Asset Disclaimer
 
