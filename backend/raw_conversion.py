@@ -11,14 +11,22 @@ def process_csv_to_hierarchical_json(stats_csv, loc_csv, json_filepath):
     # --- STEP 1: Load Translations ---
     try:
         # Change delimiter to ',' if you save as a standard comma-separated CSV
-        with open(loc_csv, mode='r', encoding='cp949') as loc_file:
+        with open(loc_csv, mode='r', encoding='utf-8') as loc_file:
             loc_reader = csv.DictReader(loc_file)
             for row in loc_reader:
                 kr_name = row['Korean'].strip()
+                # Handle potentially missing short name columns gracefully
                 translations[kr_name] = {
-                    "kr": kr_name,
-                    "en": row['English'].strip(),
-                    "jp": row['Japanese'].strip()
+                    "full": {
+                        "kr": kr_name,
+                        "en": row.get('English', kr_name).strip(),
+                        "jp": row.get('Japanese', kr_name).strip()
+                    },
+                    "short": {
+                        "kr": row.get('KoreanShort', kr_name).strip(),
+                        "en": row.get('EnglishShort', row.get('English', kr_name)).strip(),
+                        "jp": row.get('JapaneseShort', row.get('Japanese', kr_name)).strip()
+                    }
                 }
     except FileNotFoundError:
         print(f"Warning: Could not find '{loc_csv}'. Proceeding without translations.")
@@ -28,7 +36,7 @@ def process_csv_to_hierarchical_json(stats_csv, loc_csv, json_filepath):
     try:
         # Using cp949 based on your earlier Korean text encoding needs, 
         # but change to utf-8-sig if you saved the CSV as UTF-8
-        with open(stats_csv, mode='r', encoding='cp949') as stat_file:
+        with open(stats_csv, mode='r', encoding='utf-8') as stat_file:
             stat_reader = csv.DictReader(stat_file)
             
             for row in stat_reader:
@@ -48,13 +56,12 @@ def process_csv_to_hierarchical_json(stats_csv, loc_csv, json_filepath):
                 if alt_key not in db[base_char]:
                     # Grab the translation, or fallback to the Korean name if missing
                     char_names = translations.get(char_name_kr, {
-                        "kr": char_name_kr,
-                        "en": char_name_kr, 
-                        "jp": char_name_kr
+                        "full": { "kr": char_name_kr, "en": char_name_kr, "jp": char_name_kr },
+                        "short": { "kr": char_name_kr, "en": char_name_kr, "jp": char_name_kr }
                     })
                     
                     db[base_char][alt_key] = {
-                        "names": char_names,  # <-- NEW: Storing the dictionary of names
+                        "names": char_names,
                         "bonuses": {}
                     }
                 

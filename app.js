@@ -4,6 +4,14 @@ const BREAKPOINTS = [2, 6, 11, 16, 21, 31, 41];
 // Index 0 and 1 are 0. Index 2 is cost from 1->2. 
 const xpCostToNext = [0, 0, 15, 30, 30, 35, 35, 35, 40, 40, 40, 60, 90, 105, 120, 140, 160, 180, 205, 230, 255, 285, 315, 345, 375, 410, 445, 480, 520, 560, 600, 645, 690, 735, 780, 830, 880, 930, 985, 1040, 1095, 1155, 1215, 1275, 1335, 1400, 1465, 1530, 1600, 1670, 1740];
 
+const STAR_RANK_MAP = {
+    1: 10,
+    2: 10,
+    3: 20,
+    4: 30,
+    5: 50 // Bonus stats cap at 50
+};
+
 let database = null;
 
 // --- 0. LOCALIZATION STATE & DICTIONARY ---
@@ -30,9 +38,13 @@ const uiTranslations = {
         tieOr: "— 또는 —",
         rank: "인연랭",
         currentRank: "현 인연 랭크",
+        stars: "성급",
         cost: "비용:",
         gain: "상승량:",
         levelUpFrom: "다음 랭크로 레벨 업:",
+        summaryViewBtn: "요약 보기",
+        detailsViewBtn: "상세 보기",
+        summaryTied: "Tie",
     },
     en: {
         title: "Bond Rank Bonus Optimizer",
@@ -54,9 +66,13 @@ const uiTranslations = {
         tieOr: "— OR —",
         rank: "Bond",
         currentRank: "Current Bond Rank",
+        stars: "Stars",
         cost: "Cost:",
         gain: "Gain:",
         levelUpFrom: "Level up from",
+        summaryViewBtn: "Summarize",
+        detailsViewBtn: "Show Details",
+        summaryTied: "Tied",
     },
     jp: {
         title: "絆ランクボーナス最適化",
@@ -73,14 +89,18 @@ const uiTranslations = {
         totalStatGain: "総{stat}上昇量:",
         allMaxRank: "選択された生徒は全員、すでに最大ランクです！",
         step: "ステップ",
-        tieTitle: "同順位（1つを先に）",
+        tieTitle: "同順位（まず一つを）",
         tieInstruction: "これらのアップグレードは価値が同じです。<strong>招待、贈り物を分散させないでください。</strong>目標ランクに到達するまで一人の生徒に全てのXPを集中させ、その後次に進んでください。",
         tieOr: "— または —",
         rank: "絆",
         currentRank: "現絆ランク",
+        stars: "星",
         cost: "コスト:",
         gain: "上昇量:",
         levelUpFrom: "レベルアップ:",
+        summaryViewBtn: "要約表示",
+        detailsViewBtn: "詳細表示",
+        summaryTied: "同順位",
     }
 };// Function to update all static HTML text
 function updateStaticUI() {
@@ -129,7 +149,7 @@ function populateBaseDropdown() {
         
         // Use the translated name of the first character in this group
         const firstAltKey = Object.keys(database[baseId])[0];
-        const localizedName = database[baseId][firstAltKey].names[currentLang];
+        const localizedName = database[baseId][firstAltKey].names.full[currentLang];
         
         option.textContent = localizedName;
         select.appendChild(option);
@@ -172,11 +192,23 @@ document.getElementById('baseCharSelect').addEventListener('change', (e) => {
             <div class="alt-card">
                 <label>
                     <input type="checkbox" class="alt-toggle" data-id="${altId}" checked>
-                    <strong>${student.names[currentLang]}</strong> 
+                    <strong>${student.names.full[currentLang]}</strong> 
                 </label>
-                <div style="margin-top: 8px;">
-                    <label>${t.currentRank}:</label>
-                    <input type="number" class="alt-rank" id="rank-${altId}" value="1" min="1" max="49">
+                <div style="margin-top: 8px; display: flex; gap: 15px;">
+                    <div>
+                        <label for="rank-${altId}">${t.currentRank}:</label>
+                        <input type="number" class="alt-rank" id="rank-${altId}" value="1" min="1" max="49" style="width: 80px;">
+                    </div>
+                    <div>
+                        <label for="stars-${altId}">${t.stars}:</label>
+                        <select class="alt-stars" id="stars-${altId}" style="width: 120px;">
+                            <option value="1">★</option>
+                            <option value="2">★★</option>
+                            <option value="3">★★★</option>
+                            <option value="4">★★★★</option>
+                            <option value="5" selected>★★★★★</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         `;
@@ -184,6 +216,25 @@ document.getElementById('baseCharSelect').addEventListener('change', (e) => {
     }
     
     calcBtn.style.display = 'block';
+});
+
+// When the user changes a star rating, update the max rank of the corresponding input
+document.getElementById('altsContainer').addEventListener('change', (e) => {
+    if (e.target.classList.contains('alt-stars')) {
+        const altId = e.target.id.replace('stars-', '');
+        const rankInput = document.getElementById(`rank-${altId}`);
+        
+        const stars = parseInt(e.target.value);
+        const newMaxRank = STAR_RANK_MAP[stars];
+        
+        // The highest inputtable rank is 49, as 50 is the goal.
+        const inputMax = Math.min(newMaxRank, 49);
+        rankInput.max = inputMax;
+
+        if (parseInt(rankInput.value) > inputMax) {
+            rankInput.value = inputMax;
+        }
+    }
 });
 
 // --- 3. HELPER MATH FUNCTIONS ---
@@ -231,11 +282,15 @@ document.getElementById('calcButton').addEventListener('click', () => {
     activeToggles.forEach(toggle => {
         const altId = toggle.getAttribute('data-id');
         const currentRank = parseInt(document.getElementById(`rank-${altId}`).value);
+        const stars = parseInt(document.getElementById(`stars-${altId}`).value);
+        const maxRankForAlt = STAR_RANK_MAP[stars];
         const compactStats = database[selectedBase][altId].bonuses[targetStat];
         
         activeAlts.push({
-            name: database[selectedBase][altId].names[currentLang],
+            name: database[selectedBase][altId].names.full[currentLang],
+            shortName: database[selectedBase][altId].names.short[currentLang],
             currentRank: currentRank,
+            maxRank: maxRankForAlt,
             statArray: expandStatData(compactStats)
         });
     });
@@ -246,7 +301,7 @@ document.getElementById('calcButton').addEventListener('click', () => {
     }
 
     // Generate the raw path, then compress it
-    const rawRoadmapData = generateFullRoadmap(activeAlts, 50);
+    const rawRoadmapData = generateFullRoadmap(activeAlts);
     let cleanedSteps = compressRoadmap(rawRoadmapData.steps);
 
     // Filter out steps that provide no stat gain for the target stat.
@@ -262,72 +317,62 @@ document.getElementById('calcButton').addEventListener('click', () => {
     // Recalculate total cost for only the steps being shown.
     const displayTotalCost = gainfulSteps.reduce((total, step) => total + step.cost, 0);
 
-    // Print Headers
     const resultsDiv = document.getElementById('results');
-    resultsDiv.innerHTML = `
-        <h3>${t.roadmapTitle}</h3>
-        <p>${t.totalXp} <strong>${displayTotalCost}</strong></p>
-        <p>${t.totalStatGain.replace('{stat}', statName)} <strong>+${rawRoadmapData.totalGain}</strong></p>
-        <hr>
-    `;
 
+    // If no steps, show a simple message and stop.
     if (gainfulSteps.length === 0) {
-        resultsDiv.innerHTML += `<p>${t.allMaxRank}</p>`;
+        resultsDiv.innerHTML = `
+            <h3>${t.roadmapTitle}</h3>
+            <p>${t.totalXp} <strong>${displayTotalCost}</strong></p>
+            <p>${t.totalStatGain.replace('{stat}', statName)} <strong>+${rawRoadmapData.totalGain}</strong></p>
+            <hr>
+            <p>${t.allMaxRank}</p>
+        `;
         return;
     }
 
-    // Render the Timeline
-    let currentStepNum = 1;
-    gainfulSteps.forEach(step => {
-        
-        if (step.isTieGroup) {
-            // --- RENDER A TIE GROUP (OR CLAUSE) ---
-            
-            // Build the HTML for each tied option
-            let optionsHtml = step.options.map(opt => `
-                <div style="margin-left: 15px; border-left: 2px solid #ddd; padding-left: 10px; margin-bottom: 5px;">
-                    <strong>${opt.name}:</strong> ${t.rank} ${opt.startRank} ➡ <strong>${t.rank} ${opt.targetRank}</strong>
-                    <br><span style="font-size: 0.85em; color: #555;">${t.cost} ${opt.cost} XP | ${t.gain} +${opt.gain} ${statName}</span>
-                </div>
-            `).join(`<div style="margin-left: 15px; font-weight: bold; color: #888; font-size: 0.85em; margin-bottom: 5px;">${t.tieOr}</div>`);
+    // Generate both detailed and summary views
+    const detailedHtml = generateDetailedHtml(gainfulSteps, t, statName);
+    const summaryText = generateSummaryText(gainfulSteps, t);
 
-            resultsDiv.innerHTML += `
-                <div style="margin-bottom: 12px; padding: 12px; background: #fffcf2; border-left: 4px solid #f0ad4e; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                    <h4 style="margin: 0 0 6px 0; color: #d58512;">${t.step} ${currentStepNum}: ${t.tieTitle}</h4>
-                    <p style="font-size: 0.85em; margin: 0 0 10px 0; color: #666;">
-                        ${t.tieInstruction}
-                    </p>
-                    ${optionsHtml}
-                </div>
-            `;
-            
+    // Set up initial HTML with a container for steps and a toggle button
+    resultsDiv.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>${t.roadmapTitle}</h3>
+            <button id="summaryToggleBtn" style="width: auto; padding: 5px 10px; margin: 0;">${t.summaryViewBtn}</button>
+        </div>
+        <p>${t.totalXp} <strong>${displayTotalCost}</strong></p>
+        <p>${t.totalStatGain.replace('{stat}', statName)} <strong>+${rawRoadmapData.totalGain}</strong></p>
+        <hr>
+        <div id="roadmap-steps-container">${detailedHtml}</div>
+    `;
+
+    // Add event listener for the new toggle button
+    const toggleBtn = document.getElementById('summaryToggleBtn');
+    const stepsContainer = document.getElementById('roadmap-steps-container');
+
+    toggleBtn.addEventListener('click', () => {
+        const isShowingDetails = stepsContainer.querySelector('pre') === null;
+        if (isShowingDetails) {
+            stepsContainer.innerHTML = `<pre style="white-space: pre-wrap; word-break: break-word;">${summaryText}</pre>`;
+            toggleBtn.textContent = t.detailsViewBtn;
         } else {
-            // --- RENDER A STANDARD STEP ---
-            // The efficiency warning is removed as zero-gain steps are now filtered out.
-            resultsDiv.innerHTML += `
-                <div style="margin-bottom: 12px; padding: 12px; background: #fdfdfd; border-left: 4px solid #007bff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                    <h4 style="margin: 0 0 6px 0;">${t.step} ${currentStepNum}: ${step.name}</h4>
-                    <div style="font-size: 0.95em;">
-                        ${t.levelUpFrom} <strong>${t.rank} ${step.startRank}</strong> ➡ <strong>${t.rank} ${step.targetRank}</strong>
-                    </div>
-                    <div style="font-size: 0.85em; color: #555; margin-top: 6px;">
-                        ${t.cost} ${step.cost} XP | ${t.gain} +${step.gain} ${statName} 
-                    </div>
-                </div>
-            `;
+            stepsContainer.innerHTML = detailedHtml;
+            toggleBtn.textContent = t.summaryViewBtn;
         }
-        currentStepNum++;
     });
 });
 
 /**
  * Simulates leveling all characters to max rank, recording the most efficient steps in order.
  */
-function generateFullRoadmap(alts, maxRank = 50) {
+function generateFullRoadmap(alts) {
     // Create a deep copy so we don't mutate the user's HTML inputs during the simulation
     let simulatedAlts = alts.map(alt => ({
         name: alt.name,
+        shortName: alt.shortName,
         currentRank: alt.currentRank,
+        maxRank: alt.maxRank,
         statArray: alt.statArray
     }));
 
@@ -340,7 +385,7 @@ function generateFullRoadmap(alts, maxRank = 50) {
         let bestUpgrade = null;
 
         simulatedAlts.forEach((alt, index) => {
-            if (alt.currentRank >= maxRank) return;
+            if (alt.currentRank >= alt.maxRank) return;
 
             let bestEfficiency = -1;
             let bestTarget = -1;
@@ -348,7 +393,7 @@ function generateFullRoadmap(alts, maxRank = 50) {
             let bestGain = 0;
 
             // Find the most efficient future milestone for THIS character
-            for (let target = alt.currentRank + 1; target <= maxRank; target++) {
+            for (let target = alt.currentRank + 1; target <= alt.maxRank; target++) {
                 let path = getProgression(alt.currentRank, target, alt.statArray);
                 
                 if (path.cost > 0) {
@@ -394,6 +439,7 @@ function generateFullRoadmap(alts, maxRank = 50) {
                     bestUpgrade = {
                         altIndex: index,
                         name: alt.name,
+                        shortName: alt.shortName,
                         startRank: alt.currentRank,
                         targetRank: bestTarget,
                         cost: bestCost,
@@ -467,4 +513,62 @@ function compressRoadmap(rawSteps) {
     }
     
     return compressed;
+}
+
+// --- 5. VIEW RENDERING FUNCTIONS ---
+
+/**
+ * Generates the HTML for the detailed, step-by-step roadmap view.
+ */
+function generateDetailedHtml(steps, t, statName) {
+    let html = '';
+    let currentStepNum = 1;
+    steps.forEach(step => {
+        if (step.isTieGroup) {
+            let optionsHtml = step.options.map(opt => `
+                <div style="margin-left: 15px; border-left: 2px solid #ddd; padding-left: 10px; margin-bottom: 5px;">
+                    <strong>${opt.name}:</strong> ${t.rank} ${opt.startRank} ➡ <strong>${t.rank} ${opt.targetRank}</strong>
+                    <br><span style="font-size: 0.85em; color: #555;">${t.cost} ${opt.cost} XP | ${t.gain} +${opt.gain} ${statName}</span>
+                </div>
+            `).join(`<div style="margin-left: 15px; font-weight: bold; color: #888; font-size: 0.85em; margin-bottom: 5px;">${t.tieOr}</div>`);
+
+            html += `
+                <div style="margin-bottom: 12px; padding: 12px; background: #fffcf2; border-left: 4px solid #f0ad4e; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <h4 style="margin: 0 0 6px 0; color: #d58512;">${t.step} ${currentStepNum}: ${t.tieTitle}</h4>
+                    <p style="font-size: 0.85em; margin: 0 0 10px 0; color: #666;">
+                        ${t.tieInstruction}
+                    </p>
+                    ${optionsHtml}
+                </div>
+            `;
+        } else {
+            html += `
+                <div style="margin-bottom: 12px; padding: 12px; background: #fdfdfd; border-left: 4px solid #007bff; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                    <h4 style="margin: 0 0 6px 0;">${t.step} ${currentStepNum}: ${step.name}</h4>
+                    <div style="font-size: 0.95em;">
+                        ${t.levelUpFrom} <strong>${t.rank} ${step.startRank}</strong> ➡ <strong>${t.rank} ${step.targetRank}</strong>
+                    </div>
+                    <div style="font-size: 0.85em; color: #555; margin-top: 6px;">
+                        ${t.cost} ${step.cost} XP | ${t.gain} +${step.gain} ${statName} 
+                    </div>
+                </div>
+            `;
+        }
+        currentStepNum++;
+    });
+    return html;
+}
+
+/**
+ * Generates the simple text summary of the roadmap.
+ */
+function generateSummaryText(steps, t) {
+    return steps.map(step => {
+        if (step.isTieGroup) {
+            const tiedSummaries = step.options.map(opt => `${opt.shortName} ${opt.targetRank}`);
+            return `${t.summaryTied}: ${tiedSummaries.join(', ')}`;
+        } else {
+            return `${step.shortName} ${step.targetRank}`;
+        }
+    }).join('\n');
 }
