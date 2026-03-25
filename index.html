@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bond Stat Optimizer</title>
+    <style>
+        /* A little quick CSS so it isn't completely unstyled */
+        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
+        .alt-card { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; border-radius: 5px; }
+        .controls { margin-bottom: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px; }
+        select, input, button { margin-top: 5px; padding: 8px; width: 100%; box-sizing: border-box;}
+        button { background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; margin-top: 15px;}
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+
+    <h1>Bond Stat Optimizer</h1>
+
+    <div class="controls">
+        <label>Base Character:</label>
+        <select id="baseCharSelect">
+            <option value="">-- Select Character --</option>
+        </select>
+
+        <label>Target Stat:</label>
+        <select id="statSelect">
+            <option value="atk">Attack (ATK)</option>
+            <option value="hp">Health (HP)</option>
+            <option value="healing">Healing</option>
+        </select>
+    </div>
+
+    <div id="altsContainer"></div>
+
+    <button id="calcButton" style="display:none;">Generate Upgrade Priority List</button>
+
+    <div id="results" style="margin-top: 20px;"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
