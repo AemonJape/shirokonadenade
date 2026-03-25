@@ -179,17 +179,20 @@ function populateBaseDropdown() {
     // Clear existing options except the placeholder
     select.innerHTML = `<option value="" data-i18n="selectChar">${uiTranslations[currentLang].selectChar}</option>`;
     
-    const sortedBases = Object.keys(database).sort();
-    
-    sortedBases.forEach(baseId => {
-        let option = document.createElement('option');
-        option.value = baseId;
-        
-        // Use the translated name of the first character in this group
+    const charactersWithNames = Object.keys(database).map(baseId => {
+        // Use the translated name of the first character in this group for sorting
         const firstAltKey = Object.keys(database[baseId])[0];
         const localizedName = database[baseId][firstAltKey].names.full[currentLang];
-        
-        option.textContent = localizedName;
+        return { id: baseId, name: localizedName };
+    });
+
+    // Sort the array of characters alphabetically by their localized name
+    charactersWithNames.sort((a, b) => a.name.localeCompare(b.name, currentLang));
+
+    charactersWithNames.forEach(character => {
+        let option = document.createElement('option');
+        option.value = character.id;
+        option.textContent = character.name;
         select.appendChild(option);
     });
     
