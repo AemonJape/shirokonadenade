@@ -38,6 +38,7 @@ const uiTranslations = {
         tieOr: "— 또는 —",
         rank: "인연랭",
         currentRank: "현 인연 랭크",
+        efficiency: "효율",
         stars: "성급:",
         star12: "★~★★",
         star3: "★★★",
@@ -79,6 +80,7 @@ const uiTranslations = {
         tieOr: "— OR —",
         rank: "Bond",
         currentRank: "Current Bond Rank",
+        efficiency: "Efficiency",
         stars: "Stars:",
         star12: "★ or ★★",
         star3: "★★★",
@@ -120,6 +122,7 @@ const uiTranslations = {
         tieOr: "— または —",
         rank: "絆",
         currentRank: "現絆ランク",
+        efficiency: "効率",
         stars: "星：",
         star12: "★～★★",
         star3: "★★★",
@@ -762,7 +765,7 @@ function generateDetailedHtml(steps, t, statName) {
             let optionsHtml = step.options.map(opt => `
                 <div class="tie-option">
                     <strong>${opt.name}:</strong> ${t.rank} ${opt.startRank} ➡ <strong>${t.rank} ${opt.targetRank}</strong>
-                    <div class="meta">${opt.cost} XP | ${statName} +${opt.gain}</div>
+                    <div class="meta">${opt.cost} XP | ${statName} +${opt.gain} | ${t.efficiency} ${(opt.efficiency * 1000).toFixed(2)}/1k&nbsp;XP</div>
                 </div>
             `).join(`<div class="tie-separator">${t.tieOr}</div>`);
 
@@ -783,7 +786,7 @@ function generateDetailedHtml(steps, t, statName) {
                         ${t.levelUpFrom} ${t.rank} ${step.startRank} ➡ <strong>${t.rank} ${step.targetRank}</strong>
                     </div>
                     <div class="meta">
-                        ${step.cost} XP | ${statName} +${step.gain}
+                        ${step.cost} XP | ${statName} +${step.gain} | ${t.efficiency} ${(step.efficiency * 1000).toFixed(2)}/1k&nbsp;XP
                     </div>
                 </div>
             `;
