@@ -24,7 +24,9 @@ Leveling up the bond ranks on Aris, Aris (Maid), and Aris (Battle) will increase
 
 However, the amout of ATK bonus gained per bond level and the required bond XP are not constant.
 
-The site, when entered you circumstance, will find the most efficient way to maximize returns on ATK, eventually reaching the max bond level for all alts. This can be used to prioritize cafe invites, schedule meetings, and presents (with the same preference level). You may also want to abort the bond leveling when the efficiency becomes very small.
+The site, when entered you circumstance, will find the most efficient way to maximize returns on ATK, eventually reaching the max bond level for all alts. This can be used to prioritize cafe invites, schedule meetings, and gifts (with the same preference level). You may also want to abort the bond leveling when the efficiency becomes very small.
+
+Another use case : Suppose you lack a bit of healing on Mari (Idol) to save a particular student, so you decide to gift the Mari's until her healing meets the theshold. The site can help minimize the number of gifts and Gift Choice Boxes you have use to reach a particular bonus stat theshold.
 
 ## Asset Disclaimer
 
