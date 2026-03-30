@@ -11,7 +11,7 @@ def process_csv_to_hierarchical_json(stats_csv, loc_csv, json_filepath):
     # --- STEP 1: Load Translations ---
     try:
         # Change delimiter to ',' if you save as a standard comma-separated CSV
-        with open(loc_csv, mode='r', encoding='utf-8') as loc_file:
+        with open(loc_csv, mode='r', encoding='utf-8-sig') as loc_file:
             loc_reader = csv.DictReader(loc_file)
             for row in loc_reader:
                 kr_name = row['Korean'].strip()
@@ -36,7 +36,7 @@ def process_csv_to_hierarchical_json(stats_csv, loc_csv, json_filepath):
     try:
         # Using cp949 based on your earlier Korean text encoding needs, 
         # but change to utf-8-sig if you saved the CSV as UTF-8
-        with open(stats_csv, mode='r', encoding='utf-8') as stat_file:
+        with open(stats_csv, mode='r', encoding='utf-8-sig') as stat_file:
             stat_reader = csv.DictReader(stat_file)
             
             for row in stat_reader:
@@ -44,9 +44,7 @@ def process_csv_to_hierarchical_json(stats_csv, loc_csv, json_filepath):
                 base_char = row['BaseCharacter'].strip().lower()
                 alt_key = char_name_kr.lower()
                 
-                rank = int(row['Rank'])
                 stat_type = row['StatType'].strip().lower()
-                stat_gain = int(row['StatGain'])
                 
                 # 1. Initialize Base Character
                 if base_char not in db:
@@ -65,14 +63,15 @@ def process_csv_to_hierarchical_json(stats_csv, loc_csv, json_filepath):
                         "bonuses": {}
                     }
                 
-                # 3. Initialize stat array if missing
-                if stat_type not in db[base_char][alt_key]["bonuses"]:
-                    db[base_char][alt_key]["bonuses"][stat_type] = [0] * len(BREAKPOINTS)
-                    
-                # 4. Apply stat gain
-                if rank in BREAKPOINTS:
-                    idx = BREAKPOINTS.index(rank)
-                    db[base_char][alt_key]["bonuses"][stat_type][idx] = stat_gain
+                # 3. Extract stat gains directly from the compact row
+                current_stat_gains = []
+                for bp in BREAKPOINTS:
+                    # The column names are strings of the breakpoints (e.g., '2', '6')
+                    # Use .get with a default of 0 in case a breakpoint column is missing or empty
+                    gain = int(row.get(str(bp), 0))
+                    current_stat_gains.append(gain)
+                
+                db[base_char][alt_key]["bonuses"][stat_type] = current_stat_gains
 
         # Cleanup: Remove empty arrays
         for base_char, alts in db.items():
@@ -93,4 +92,4 @@ def process_csv_to_hierarchical_json(stats_csv, loc_csv, json_filepath):
         print(f"Error: Missing column in Stats CSV - {e}. Check your headers!")
 
 # Run the script
-process_csv_to_hierarchical_json('./backend/raw_bond_data.csv', './backend/raw_lang_names.csv', './docs/bond_data.json')
+process_csv_to_hierarchical_json('./backend/bond_data.csv', './backend/raw_lang_names.csv', './docs/bond_data.json')
