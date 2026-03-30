@@ -44,6 +44,7 @@ const uiTranslations = {
         star3: "★★★",
         star4: "★★★★",
         star5: "★★★★★",
+        fromTo: "~",
         levelUpFrom: "다음 랭크로 레벨 업:",
         summaryViewBtn: "요약 보기",
         detailsViewBtn: "상세 보기",
@@ -58,6 +59,7 @@ const uiTranslations = {
         graphXAxis: "누적 인연 XP",
         graphYAxis: "누적 {stat} 상승량",
         graphStart: "시작",
+        viewBonuses: "인연 보너스 보기",
     },
     en: {
         title: "Blue Archive\nBond Rank Bonus Stat Optimizer for Students with Alts",
@@ -86,6 +88,7 @@ const uiTranslations = {
         star3: "★★★",
         star4: "★★★★",
         star5: "★★★★★",
+        fromTo: "-",
         levelUpFrom: "Level up from",
         summaryViewBtn: "Summarize",
         detailsViewBtn: "Details",
@@ -100,6 +103,7 @@ const uiTranslations = {
         graphXAxis: "Cumulative Bond XP",
         graphYAxis: "Cumulative {stat} Gain",
         graphStart: "Start",
+        viewBonuses: "View Bond Bonuses",
     },
     jp: {
         title: "ブルーアーカイブ\n絆ランクボーナス最適化\n他の衣装がある生徒のため",
@@ -128,6 +132,7 @@ const uiTranslations = {
         star3: "★★★",
         star4: "★★★★",
         star5: "★★★★★",
+        fromTo: "～",
         levelUpFrom: "レベルアップ：",
         summaryViewBtn: "要約",
         detailsViewBtn: "詳細",
@@ -142,6 +147,7 @@ const uiTranslations = {
         graphXAxis: "累積絆XP",
         graphYAxis: "累積{stat}上昇量",
         graphStart: "開始",
+        viewBonuses: "絆ボーナス表示",
     }
 };// Function to update all static HTML text
 function updateStaticUI() {
@@ -231,6 +237,46 @@ document.getElementById('baseCharSelect').addEventListener('change', (e) => {
     for (const altId in alts) {
         const student = alts[altId];
         
+        // --- Generate bonus details HTML ---
+        let bonusDetailsList = '';
+        const statNameMap = {
+            atk: t.statAtk,
+            hp: t.statHp,
+            healing: t.statHeal,
+            def: t.statDef
+        };
+
+        for (let i = 0; i < BREAKPOINTS.length; i++) {
+            const startRank = BREAKPOINTS[i];
+            const endRank = (i < BREAKPOINTS.length - 1) ? BREAKPOINTS[i + 1] - 1 : 50;
+
+            const gainsForRange = Object.keys(statNameMap)
+                .map(statType => {
+                    const gain = student.bonuses[statType]?.[i] || 0;
+                    if (gain > 0) {
+                        return `${statNameMap[statType]} +${gain}`;
+                    }
+                    return null;
+                })
+                .filter(Boolean);
+
+            if (gainsForRange.length > 0) {
+                const rankRangeStr = `${t.rank} ${startRank}${t.fromTo}${endRank}`;
+                const gainsStr = gainsForRange.join(', ');
+                bonusDetailsList += `<li><strong>${rankRangeStr} :</strong> ${gainsStr}</li>`;
+            }
+        }
+        
+        let bonusDetailsHtml = '';
+        if (bonusDetailsList) {
+            bonusDetailsHtml = `
+                <details class="bond-bonus-details" style="margin-top: 10px; font-size: 0.9em;">
+                    <summary style="cursor: pointer;">${t.viewBonuses}</summary>
+                    <ul style="margin-top: 5px; padding-left: 20px;">${bonusDetailsList}</ul>
+                </details>
+            `;
+        }
+
         // Build a card for each alt using a template literal
         const cardHtml = `
             <div class="alt-card">
@@ -256,6 +302,7 @@ document.getElementById('baseCharSelect').addEventListener('change', (e) => {
                         </select>
                     </div>
                 </div>
+                ${bonusDetailsHtml}
             </div>
         `;
         container.innerHTML += cardHtml;
