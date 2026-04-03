@@ -14,7 +14,7 @@ The app will calculate an optimal usage route of bond XP for bonus stat gains.
 
 A summary can be produced and copied for your own memos.
 
-Currently, all students with alts up to Koyuki(Pajama) (JP server) are in the database.
+Currently, only students with alts are in the database.
 
 ## Use Case
 
