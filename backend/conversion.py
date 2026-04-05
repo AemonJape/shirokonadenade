@@ -15,18 +15,18 @@ def process_csv_to_hierarchical_json(stats_csv, loc_csv, gift_csv, gift_loc_csv,
         with open(loc_csv, mode='r', encoding='utf-8-sig') as loc_file:
             loc_reader = csv.DictReader(loc_file)
             for row in loc_reader:
-                kr_name = row['Korean'].strip()
+                id = row['Korean'].strip()
                 # Handle potentially missing short name columns gracefully
-                translations[kr_name] = {
+                translations[id] = {
                     "full": {
-                        "kr": kr_name,
-                        "en": row.get('English', kr_name).strip(),
-                        "jp": row.get('Japanese', kr_name).strip()
+                        "kr": id,
+                        "en": row.get('English', id).strip(),
+                        "jp": row.get('Japanese', id).strip()
                     },
                     "short": {
-                        "kr": row.get('KoreanShort', kr_name).strip(),
-                        "en": row.get('EnglishShort', row.get('English', kr_name)).strip(),
-                        "jp": row.get('JapaneseShort', row.get('Japanese', kr_name)).strip()
+                        "kr": row.get('KoreanShort', id).strip(),
+                        "en": row.get('EnglishShort', row.get('English', id)).strip(),
+                        "jp": row.get('JapaneseShort', row.get('Japanese', id)).strip()
                     }
                 }
     except FileNotFoundError:
@@ -82,12 +82,12 @@ def process_csv_to_hierarchical_json(stats_csv, loc_csv, gift_csv, gift_loc_csv,
             with open(gift_loc_csv, mode='r', encoding='utf-8-sig') as gl_file:
                 gl_reader = csv.DictReader(gl_file)
                 for row in gl_reader:
-                    kr_name = row['Korean'].strip()
-                    gift_translations[kr_name] = {
-                        "id": row.get('id', kr_name).strip(),
-                        "kr": kr_name,
-                        "en": row.get('English', kr_name).strip(),
-                        "jp": row.get('Japanese', kr_name).strip()
+                    id = row['id'].strip()
+                    gift_translations[id] = {
+                        "id": id,
+                        "kr": row.get('Korean', id).strip(),
+                        "en": row.get('English', id).strip(),
+                        "jp": row.get('Japanese', id).strip()
                     }
         except FileNotFoundError:
             print(f"Warning: Could not find '{gift_loc_csv}'. Proceeding without gift translations.")
@@ -107,16 +107,17 @@ def process_csv_to_hierarchical_json(stats_csv, loc_csv, gift_csv, gift_loc_csv,
                         for key, value in row.items():
                             if key != '학생' and value and value.strip().isdigit():
                                 val = int(value.strip())
-                                trans = gift_translations.get(key, {"id": key, "kr": key, "en": key, "jp": key})
+                                clean_key = key.strip()
+                                trans = gift_translations.get(clean_key, {"id": clean_key, "kr": clean_key, "en": clean_key, "jp": clean_key})
                                 if val <= 80:
                                     gift_names["sr"].append(trans)
                                 else:
                                     gift_names["ssr"].append(trans)
                         headers_processed = True
 
-                    kr_name = row.get('학생', '').strip()
-                    if kr_name in kr_name_to_keys:
-                        base_char, alt_key = kr_name_to_keys[kr_name]
+                    id = row.get('학생', '').strip()
+                    if id in kr_name_to_keys:
+                        base_char, alt_key = kr_name_to_keys[id]
                         
                         gifts = {"sr": [], "ssr": []}
                         for key, value in row.items():
