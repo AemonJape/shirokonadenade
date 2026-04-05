@@ -4,9 +4,10 @@ import json
 # The specific ranks where stat gains change
 BREAKPOINTS = [2, 6, 11, 16, 21, 31, 41]
 
-def process_csv_to_hierarchical_json(stats_csv, loc_csv, json_filepath):
+def process_csv_to_hierarchical_json(stats_csv, loc_csv, gift_csv, gift_loc_csv, json_filepath):
     db = {}
     translations = {}
+    kr_name_to_keys = {}
 
     # --- STEP 1: Load Translations ---
     try:
@@ -44,6 +45,8 @@ def process_csv_to_hierarchical_json(stats_csv, loc_csv, json_filepath):
                 base_char = row['BaseCharacter'].strip().lower()
                 alt_key = char_name_kr.lower()
                 
+                kr_name_to_keys[char_name_kr] = (base_char, alt_key)
+
                 stat_type = row['StatType'].strip().lower()
                 
                 # 1. Initialize Base Character
@@ -73,13 +76,71 @@ def process_csv_to_hierarchical_json(stats_csv, loc_csv, json_filepath):
                 
                 db[base_char][alt_key]["bonuses"][stat_type] = current_stat_gains
 
+        # --- STEP 2.5: Load Gift Translations ---
+        gift_translations = {}
+        try:
+            with open(gift_loc_csv, mode='r', encoding='utf-8-sig') as gl_file:
+                gl_reader = csv.DictReader(gl_file)
+                for row in gl_reader:
+                    kr_name = row['Korean'].strip()
+                    gift_translations[kr_name] = {
+                        "id": row.get('id', kr_name).strip(),
+                        "kr": kr_name,
+                        "en": row.get('English', kr_name).strip(),
+                        "jp": row.get('Japanese', kr_name).strip()
+                    }
+        except FileNotFoundError:
+            print(f"Warning: Could not find '{gift_loc_csv}'. Proceeding without gift translations.")
+        except KeyError as e:
+            print(f"Error in gift localization CSV: Missing column {e}. Check headers!")
+
+        # --- STEP 3: Load Gift Preferences ---
+        gift_names = {"sr": [], "ssr": []}
+        try:
+            with open(gift_csv, mode='r', encoding='utf-8-sig') as gift_file:
+                gift_reader = csv.DictReader(gift_file)
+                headers_processed = False
+                
+                for row in gift_reader:
+                    # Read headers and categorize them dynamically from the first row's values
+                    if not headers_processed:
+                        for key, value in row.items():
+                            if key != '학생' and value and value.strip().isdigit():
+                                val = int(value.strip())
+                                trans = gift_translations.get(key, {"id": key, "kr": key, "en": key, "jp": key})
+                                if val <= 80:
+                                    gift_names["sr"].append(trans)
+                                else:
+                                    gift_names["ssr"].append(trans)
+                        headers_processed = True
+
+                    kr_name = row.get('학생', '').strip()
+                    if kr_name in kr_name_to_keys:
+                        base_char, alt_key = kr_name_to_keys[kr_name]
+                        
+                        gifts = {"sr": [], "ssr": []}
+                        for key, value in row.items():
+                            if key != '학생' and value and value.strip().isdigit():
+                                val = int(value.strip())
+                                if val <= 80:
+                                    gifts["sr"].append(val)
+                                else:
+                                    gifts["ssr"].append(val)
+                                
+                        db[base_char][alt_key]["gifts"] = gifts
+        except FileNotFoundError:
+            print(f"Warning: Could not find '{gift_csv}'. Proceeding without gift preferences.")
+
         # Cleanup: Remove empty arrays
         for base_char, alts in db.items():
             for alt_key, alt_data in alts.items():
                 bonuses = alt_data["bonuses"]
                 alt_data["bonuses"] = {k: v for k, v in bonuses.items() if any(val > 0 for val in v)}
 
-        final_json = {"base_characters": db}
+        final_json = {
+            "gift_names": gift_names,
+            "base_characters": db
+        }
             
         with open(json_filepath, 'w', encoding='utf-8') as outfile:
             json.dump(final_json, outfile, indent=2, ensure_ascii=False)
@@ -92,4 +153,4 @@ def process_csv_to_hierarchical_json(stats_csv, loc_csv, json_filepath):
         print(f"Error: Missing column in Stats CSV - {e}. Check your headers!")
 
 # Run the script
-process_csv_to_hierarchical_json('./backend/bond_data.csv', './backend/raw_lang_names.csv', './docs/bond_data.json')
+process_csv_to_hierarchical_json('./backend/bond_data.csv', './backend/raw_lang_names.csv', './backend/gift_preference.csv', './backend/gift_lang_names.csv', './docs/bond_data.json')

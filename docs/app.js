@@ -12,144 +12,12 @@ const STAR_RANK_MAP = {
 };
 
 let database = null;
+let uiTranslations = null;
 
 // --- 0. LOCALIZATION STATE & DICTIONARY ---
 let currentLang = 'kr';
 
-const uiTranslations = {
-    kr: {
-        title: "블루 아카이브\n이격 인연작 최적화 계산기",
-        baseChar: "원본 학생:",
-        selectChar: "-- 학생 선택 --",
-        targetStat: "목표 스탯:",
-        statAtk: "공격력",
-        statHp: "최대 체력",
-        statHeal: "치유력",
-        statDef: "방어력",
-        calcBtn: "최적화 계획 산출",
-        alertNoChars: "최소 한 명의 학생을 선택해주세요!",
-        roadmapTitle: "최적의 스탯 인연작 로드맵",
-        totalXp: "총 필요 인연 XP:",
-        totalStatGain: "총 {stat} 상승량:",
-        allMaxRank: "획득 가능한 보너스 스탯이 없습니다!",
-        step: "단계",
-        tieTitle: "동순위 (한 쪽을 먼저)",
-        tieInstruction: "가치가 동일한 부분입니다. <strong>초대권, 선물 등을 분산시키지 마세요.</strong> 목표 랭크에 도달할 때까지 한 학생에게 집중한 다음, 다음 학생으로 넘어가세요.",
-        tieOr: "— 또는 —",
-        rank: "인연랭",
-        currentRank: "현 인연 랭크",
-        efficiency: "효율",
-        stars: "성급:",
-        star12: "★~★★",
-        star3: "★★★",
-        star4: "★★★★",
-        star5: "★★★★★",
-        fromTo: "~",
-        levelUpFrom: "다음 랭크로 레벨 업:",
-        summaryViewBtn: "요약 보기",
-        detailsViewBtn: "상세 보기",
-        summaryTied: "Tie",
-        include: "보유",
-        notInclude: "미보유",
-        reportIssue: "문제 보고",
-        languageLabel: "Language:",
-        copyBtn: "복사",
-        copiedBtn: "복사됨!",
-        graphViewBtn: "그래프 보기",
-        graphXAxis: "누적 인연 XP",
-        graphYAxis: "누적 {stat} 상승량",
-        graphStart: "시작",
-        viewBonuses: "인연 보너스 보기",
-    },
-    en: {
-        title: "Blue Archive\nBond Rank Bonus Stat Optimizer for Students with Alts",
-        baseChar: "Base Student:",
-        selectChar: "-- Select Student --",
-        targetStat: "Target Stat:",
-        statAtk: "ATK",
-        statHp: "Max HP",
-        statHeal: "Healing",
-        statDef: "DEF",
-        calcBtn: "Generate Optimal Bond Roadmap",
-        alertNoChars: "Please select at least one character!",
-        roadmapTitle: "Optimal Roadmap",
-        totalXp: "Total XP Required:",
-        totalStatGain: "Total {stat} Gain:",
-        allMaxRank: "No earnable Bonus Stats are available!",
-        step: "Step",
-        tieTitle: "Tied Priority (Prioritize One First)",
-        tieInstruction: "These upgrades have identical value. <strong>Do not split your gifts or invites.</strong> Focus all XP on one student until they hit the target rank, then move on to the next.",
-        tieOr: "— OR —",
-        rank: "Bond",
-        currentRank: "Current Bond Rank",
-        efficiency: "Efficiency",
-        stars: "Stars:",
-        star12: "★ or ★★",
-        star3: "★★★",
-        star4: "★★★★",
-        star5: "★★★★★",
-        fromTo: "-",
-        levelUpFrom: "Level up from",
-        summaryViewBtn: "Summarize",
-        detailsViewBtn: "Details",
-        summaryTied: "Tied",
-        include: "Have",
-        notInclude: "Don't Have",
-        reportIssue: "Report an Issue",
-        languageLabel: "Language:",
-        copyBtn: "Copy",
-        copiedBtn: "Copied!",
-        graphViewBtn: "Show Graph",
-        graphXAxis: "Cumulative Bond XP",
-        graphYAxis: "Cumulative {stat} Gain",
-        graphStart: "Start",
-        viewBonuses: "View Bond Bonuses",
-    },
-    jp: {
-        title: "ブルーアーカイブ\n絆ランクボーナス最適化\n他の衣装がある生徒のため",
-        baseChar: "元衣装の生徒:",
-        selectChar: "-- 生徒選択 --",
-        targetStat: "目標ステータス：",
-        statAtk: "攻撃力",
-        statHp: "最大HP",
-        statHeal: "治癒力",
-        statDef: "防御力",
-        calcBtn: "最適化ルート計算",
-        alertNoChars: "少なくとも一人の生徒を選択してください！",
-        roadmapTitle: "最適化ロードマップ",
-        totalXp: "総必要絆XP：",
-        totalStatGain: "総{stat}上昇量：",
-        allMaxRank: "取得可能なボーナスステータスはありません！",
-        step: "ステップ",
-        tieTitle: "同順位（まず一つを）",
-        tieInstruction: "これらのアップグレードは価値が同じです。<strong>招待、贈り物を分散させないでください。</strong>目標ランクに到達するまで一人の生徒に全てのXPを集中させ、その後次に進んでください。",
-        tieOr: "— または —",
-        rank: "絆",
-        currentRank: "現絆ランク",
-        efficiency: "効率",
-        stars: "星：",
-        star12: "★～★★",
-        star3: "★★★",
-        star4: "★★★★",
-        star5: "★★★★★",
-        fromTo: "～",
-        levelUpFrom: "レベルアップ：",
-        summaryViewBtn: "要約",
-        detailsViewBtn: "詳細",
-        summaryTied: "同順位",
-        include: "所属",
-        notInclude: "未所属",
-        reportIssue: "問題を報告",
-        languageLabel: "Language:",
-        copyBtn: "コピー",
-        copiedBtn: "コピーしました！",
-        graphViewBtn: "グラフ表示",
-        graphXAxis: "累積絆XP",
-        graphYAxis: "累積{stat}上昇量",
-        graphStart: "開始",
-        viewBonuses: "絆ボーナス表示",
-    }
-};// Function to update all static HTML text
+// Function to update all static HTML text
 function updateStaticUI() {
     const elements = document.querySelectorAll('[data-i18n]');
     elements.forEach(el => {
@@ -209,14 +77,18 @@ function populateBaseDropdown() {
 }
 
 // --- 1. INITIALIZATION ---
-// Fetch the JSON file when the page loads
-fetch('bond_data.json')
-    .then(response => response.json())
-    .then(data => {
-        database = data.base_characters;
-        populateBaseDropdown();
-    })
-    .catch(error => console.error("Error loading JSON:", error));
+// Fetch the JSON files when the page loads
+Promise.all([
+    fetch('bond_data.json').then(response => response.json()),
+    fetch('translations.json').then(response => response.json())
+])
+.then(([bondData, transData]) => {
+    database = bondData.base_characters;
+    uiTranslations = transData;
+    updateStaticUI();
+    populateBaseDropdown();
+})
+.catch(error => console.error("Error loading JSON data:", error));
 
 // --- 2. UI EVENT LISTENERS ---
 // When the user selects a character, generate the input fields
@@ -521,99 +393,92 @@ document.getElementById('calcButton').addEventListener('click', () => {
  * Simulates leveling all characters to max rank, recording the most efficient steps in order.
  */
 function generateFullRoadmap(alts) {
-    // Create a deep copy so we don't mutate the user's HTML inputs during the simulation
-    let simulatedAlts = alts.map(alt => ({
-        name: alt.name,
-        shortName: alt.shortName,
-        currentRank: alt.currentRank,
-        maxRank: alt.maxRank,
-        statArray: alt.statArray
-    }));
-
+    // Create a deep copy to avoid mutating the original array during simulation.
+    let simulatedAlts = JSON.parse(JSON.stringify(alts));
     let roadmap = [];
     let totalXpSpent = 0;
     let totalStatGained = 0;
 
-    // Keep looping until every character hits the max rank
-    while (true) {
-        let bestUpgrade = null;
+    // Helper to find the single most efficient next milestone for one character.
+    const findBestMilestoneForAlt = (alt) => {
+        if (alt.currentRank >= alt.maxRank) return null;
 
-        simulatedAlts.forEach((alt, index) => {
-            if (alt.currentRank >= alt.maxRank) return;
+        let bestMilestone = {
+            efficiency: -1,
+            targetRank: -1,
+            cost: 0,
+            gain: 0
+        };
 
-            let bestEfficiency = -1;
-            let bestTarget = -1;
-            let bestCost = 0;
-            let bestGain = 0;
+        // Find the most efficient future milestone for THIS character
+        for (let target = alt.currentRank + 1; target <= alt.maxRank; target++) {
+            const path = getProgression(alt.currentRank, target, alt.statArray);
 
-            // Find the most efficient future milestone for THIS character
-            for (let target = alt.currentRank + 1; target <= alt.maxRank; target++) {
-                let path = getProgression(alt.currentRank, target, alt.statArray);
-                
-                if (path.cost > 0) {
-                    let efficiency = path.gain / path.cost;
-                    
-                    // NEW LOGIC: Check efficiency first, then break ties with lower cost
-                    let isBetter = false;
-                    // Use 0.0001 to prevent JavaScript floating point math errors
-                    if (efficiency > bestEfficiency + 0.0001) {
+            if (path.cost > 0) {
+                const efficiency = path.gain / path.cost;
+                let isBetter = false;
+
+                // Use a small epsilon for floating point comparison
+                const epsilon = 0.0001;
+                if (efficiency > bestMilestone.efficiency + epsilon) {
+                    isBetter = true;
+                } else if (Math.abs(efficiency - bestMilestone.efficiency) <= epsilon) {
+                    // If efficiency is identical, prefer the cheaper upgrade
+                    if (path.cost < bestMilestone.cost || bestMilestone.cost === 0) {
                         isBetter = true;
-                    } else if (Math.abs(efficiency - bestEfficiency) <= 0.0001) {
-                        // If efficiency is identical, prefer the cheaper upgrade
-                        if (path.cost < bestCost || bestCost === 0) {
-                            isBetter = true;
-                        }
-                    }
-
-                    if (isBetter) {
-                        bestEfficiency = efficiency;
-                        bestTarget = target;
-                        bestCost = path.cost;
-                        bestGain = path.gain;
-                    }
-                }
-            }
-
-            // Compare this character's best milestone against the rest of the group
-            if (bestTarget !== -1) {
-                let isBetterOverall = false;
-                
-                if (!bestUpgrade) {
-                    isBetterOverall = true;
-                } else if (bestEfficiency > bestUpgrade.efficiency + 0.0001) {
-                    isBetterOverall = true;
-                } else if (Math.abs(bestEfficiency - bestUpgrade.efficiency) <= 0.0001) {
-                    // If efficiency is tied between two characters, pick the cheaper one
-                    if (bestCost < bestUpgrade.cost) {
-                        isBetterOverall = true;
                     }
                 }
 
-                if (isBetterOverall) {
-                    bestUpgrade = {
-                        altIndex: index,
-                        name: alt.name,
-                        shortName: alt.shortName,
-                        startRank: alt.currentRank,
-                        targetRank: bestTarget,
-                        cost: bestCost,
-                        gain: bestGain,
-                        efficiency: bestEfficiency
+                if (isBetter) {
+                    bestMilestone = {
+                        efficiency: efficiency,
+                        targetRank: target,
+                        cost: path.cost,
+                        gain: path.gain
                     };
                 }
             }
+        }
+
+        return bestMilestone.targetRank !== -1 ? bestMilestone : null;
+    };
+
+    // Keep finding the best next step until all characters are at their max rank.
+    while (true) {
+        const possibleUpgrades = simulatedAlts.map((alt, index) => {
+            const milestone = findBestMilestoneForAlt(alt);
+            if (!milestone) return null;
+
+            // Combine character data with the milestone data
+            return {
+                ...milestone,
+                altIndex: index,
+                name: alt.name,
+                shortName: alt.shortName,
+                startRank: alt.currentRank,
+            };
+        }).filter(Boolean); // Remove nulls for characters who are maxed out
+
+        // If no upgrades are possible, we're done.
+        if (possibleUpgrades.length === 0) break;
+
+        // Sort to find the best overall upgrade: highest efficiency, then lowest cost.
+        possibleUpgrades.sort((a, b) => {
+            if (Math.abs(a.efficiency - b.efficiency) > 0.0001) {
+                return b.efficiency - a.efficiency; // Higher efficiency first
+            }
+            return a.cost - b.cost; // Lower cost first
         });
 
-        // If no upgrades were found, everyone is at max rank. Break the loop.
-        if (!bestUpgrade) break;
+        const bestNextStep = possibleUpgrades[0];
 
-        // 1. Record the winning step into our timeline
-        roadmap.push(bestUpgrade);
-        totalXpSpent += bestUpgrade.cost;
-        totalStatGained += bestUpgrade.gain;
+        // 1. Record the winning step.
+        roadmap.push(bestNextStep);
+        totalXpSpent += bestNextStep.cost;
+        totalStatGained += bestNextStep.gain;
 
-        // 2. Apply the simulated level-up to the character so the next loop calculates correctly
-        simulatedAlts[bestUpgrade.altIndex].currentRank = bestUpgrade.targetRank;
+        // 2. Apply the simulated level-up for the next iteration.
+        simulatedAlts[bestNextStep.altIndex].currentRank = bestNextStep.targetRank;
     }
 
     return {
