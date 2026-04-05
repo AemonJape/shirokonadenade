@@ -11,8 +11,22 @@ const STAR_RANK_MAP = {
     5: 50 // Bonus stats cap at 50
 };
 
+const LIKENESS_MAPPING_SR = {
+    20 : 1,
+    40 : 2,
+    60 : 3,
+    80 : 4
+}
+
+const LIKENESS_MAPPING_SSR = {
+    120 : 2,
+    180 : 3,
+    240 : 4
+}
+
 let database = null;
 let uiTranslations = null;
+let globalGiftNames = null;
 
 // --- 0. LOCALIZATION STATE & DICTIONARY ---
 let currentLang = 'kr';
@@ -84,9 +98,24 @@ Promise.all([
 ])
 .then(([bondData, transData]) => {
     database = bondData.base_characters;
+    globalGiftNames = bondData.gift_names;
     uiTranslations = transData;
     updateStaticUI();
     populateBaseDropdown();
+
+    // Add the new budget calculation button
+    const calcBtn = document.getElementById('calcButton');
+    if (calcBtn && !document.getElementById('calcBudgetBtn')) {
+        const calcBudgetBtn = document.createElement('button');
+        calcBudgetBtn.id = 'calcBudgetBtn';
+        calcBudgetBtn.style.display = 'none';
+        calcBudgetBtn.style.marginLeft = '10px';
+        calcBudgetBtn.setAttribute('data-i18n', 'calcBudgetBtn');
+        calcBtn.parentNode.insertBefore(calcBudgetBtn, calcBtn.nextSibling);
+        
+        updateStaticUI(); // Translate the newly added button
+        calcBudgetBtn.addEventListener('click', openGiftMenu);
+    }
 })
 .catch(error => console.error("Error loading JSON data:", error));
 
@@ -96,10 +125,12 @@ document.getElementById('baseCharSelect').addEventListener('change', (e) => {
     const selectedBase = e.target.value;
     const container = document.getElementById('altsContainer');
     const calcBtn = document.getElementById('calcButton');
+    const budgetBtn = document.getElementById('calcBudgetBtn');
     container.innerHTML = ''; // Clear previous fields
 
     if (!selectedBase) {
         calcBtn.style.display = 'none';
+        if (budgetBtn) budgetBtn.style.display = 'none';
         return;
     }
 
@@ -180,7 +211,8 @@ document.getElementById('baseCharSelect').addEventListener('change', (e) => {
         container.innerHTML += cardHtml;
     }
     
-    calcBtn.style.display = 'block';
+    calcBtn.style.display = 'inline-block';
+    if (budgetBtn) budgetBtn.style.display = 'inline-block';
 });
 
 // When the user changes a star rating, update the max rank of the corresponding input
@@ -486,6 +518,215 @@ function generateFullRoadmap(alts) {
         totalCost: totalXpSpent,
         totalGain: totalStatGained
     };
+}
+
+/**
+ * Opens a modal to input owned gifts, separating preferred gifts from default ones.
+ */
+function openGiftMenu() {
+    const selectedBase = document.getElementById('baseCharSelect').value;
+    const activeToggles = document.querySelectorAll('.alt-toggle:checked');
+    const t = uiTranslations[currentLang];
+
+    if (activeToggles.length === 0) {
+        alert(t.alertNoChars);
+        return;
+    }
+
+    let prefSr = [];
+    let prefSsr = [];
+
+    // Find preferred SR gifts
+    globalGiftNames.sr.forEach((giftObj, index) => {
+        let maxPref = 20;
+        let likenessSet = new Set();
+        activeToggles.forEach(toggle => {
+            const altId = toggle.getAttribute('data-id');
+            const pref = database[selectedBase][altId].gifts.sr[index];
+            if (pref > maxPref) maxPref = pref;
+            likenessSet.add(LIKENESS_MAPPING_SR[pref] || 1);
+        });
+        if (maxPref > 20) prefSr.push({ giftObj, index, maxPref, likenesses: Array.from(likenessSet).sort((a, b) => b - a) });
+    });
+
+    // Find preferred SSR gifts
+    globalGiftNames.ssr.forEach((giftObj, index) => {
+        let maxPref = 120;
+        let likenessSet = new Set();
+        activeToggles.forEach(toggle => {
+            const altId = toggle.getAttribute('data-id');
+            const pref = database[selectedBase][altId].gifts.ssr[index];
+            if (pref > maxPref) maxPref = pref;
+            likenessSet.add(LIKENESS_MAPPING_SSR[pref] || 2);
+        });
+        if (maxPref > 120) prefSsr.push({ giftObj, index, maxPref, likenesses: Array.from(likenessSet).sort((a, b) => b - a) });
+    });
+
+    // Sort by highest preference first
+    prefSr.sort((a, b) => b.maxPref - a.maxPref);
+    prefSsr.sort((a, b) => b.maxPref - a.maxPref);
+
+    // Calculate max SR likeness for the Gift Choice Box
+    let choiceBoxLikenessSet = new Set();
+    activeToggles.forEach(toggle => {
+        const altId = toggle.getAttribute('data-id');
+        const srGifts = database[selectedBase][altId].gifts.sr;
+        const maxSrPref = srGifts.length > 0 ? Math.max(...srGifts) : 20;
+        choiceBoxLikenessSet.add(LIKENESS_MAPPING_SR[maxSrPref] || 1);
+    });
+    const choiceBoxLikenesses = Array.from(choiceBoxLikenessSet).sort((a, b) => b - a);
+    const choiceBoxIconsHtml = choiceBoxLikenesses.map(l => `<img src="images/gift_${l}.png" style="width: 16px; height: 16px; margin-left: 2px;" alt="L${l}">`).join('');
+
+    // Get the IDs of the "other" gifts for the rotating icons
+    const otherSsrIds = globalGiftNames.ssr.filter((_, i) => !prefSsr.some(p => p.index === i)).map(g => g.id);
+    const otherSrIds = globalGiftNames.sr.filter((_, i) => !prefSr.some(p => p.index === i)).map(g => g.id);
+
+    // Generate HTML for the Modal
+    let html = `
+    <div id="giftModalOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; display: flex; justify-content: center; align-items: center;">
+        <div class="gift-modal" style="background: var(--bg-color, #1e1e2e); color: var(--text-color, #cdd6f4); padding: 20px; border-radius: 8px; max-width: 450px; width: 90%; max-height: 85vh; overflow-y: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
+            <h3 style="margin-top: 0;">${t.giftMenuTitle}</h3>`;
+
+    if (prefSsr.length > 0 || prefSr.length > 0) {
+        html += `<div style="margin-bottom: 15px;">`;
+        prefSsr.forEach(item => {
+            const iconsHtml = item.likenesses.map(l => `<img src="images/gift_${l}.png" style="width: 16px; height: 16px; margin-left: 2px;" alt="L${l}">`).join('');
+            html += `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div style="display: flex; align-items: center;">
+                    <img src="images/${encodeURIComponent(item.giftObj.id)}.webp" style="width: 32px; height: 32px; object-fit: contain; background-color: #8b5cf6; border-radius: 4px; margin-right: 10px; padding: 2px;" alt="SSR">
+                    <span>${item.giftObj[currentLang]}</span>
+                    <div style="margin-left: 6px; display: flex;">${iconsHtml}</div>
+                </div>
+                <input type="number" min="0" value="0" id="gift-ssr-${item.index}" style="width: 60px; padding: 4px; border-radius: 4px;">
+            </div>`;
+        });
+        prefSr.forEach(item => {
+            const iconsHtml = item.likenesses.map(l => `<img src="images/gift_${l}.png" style="width: 16px; height: 16px; margin-left: 2px;" alt="L${l}">`).join('');
+            html += `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div style="display: flex; align-items: center;">
+                    <img src="images/${encodeURIComponent(item.giftObj.id)}.webp" style="width: 32px; height: 32px; object-fit: contain; background-color: #eab308; border-radius: 4px; margin-right: 10px; padding: 2px;" alt="SR">
+                    <span>${item.giftObj[currentLang]}</span>
+                    <div style="margin-left: 6px; display: flex;">${iconsHtml}</div>
+                </div>
+                <input type="number" min="0" value="0" id="gift-sr-${item.index}" style="width: 60px; padding: 4px; border-radius: 4px;">
+            </div>`;
+        });
+        html += `</div>`;
+    }
+
+    const hasOtherSsr = prefSsr.length < globalGiftNames.ssr.length;
+    const hasOtherSr = prefSr.length < globalGiftNames.sr.length;
+
+    if (hasOtherSsr || hasOtherSr) {
+        if (prefSsr.length > 0 || prefSr.length > 0) {
+            html += `<hr style="border-top: 1px solid #45475a; margin: 15px 0;">`;
+        }
+        
+        if (hasOtherSsr) {
+            html += `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div style="display: flex; align-items: center;">
+                    <img id="img-other-ssr" src="images/${encodeURIComponent(otherSsrIds[0])}.webp" style="width: 32px; height: 32px; object-fit: contain; background-color: #8b5cf6; border-radius: 4px; margin-right: 10px; padding: 2px;" alt="Other SSR">
+                    <span>${t.otherSsrGifts}</span>
+                    <div style="margin-left: 6px; display: flex;"><img src="images/gift_2.png" style="width: 16px; height: 16px; margin-left: 2px;" alt="L2"></div>
+                </div>
+                <input type="number" min="0" value="0" id="gift-other-ssr" style="width: 60px; padding: 4px; border-radius: 4px;">
+            </div>`;
+        }
+        
+        if (hasOtherSr) {
+            html += `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div style="display: flex; align-items: center;">
+                    <img id="img-other-sr" src="images/${encodeURIComponent(otherSrIds[0])}.webp" style="width: 32px; height: 32px; object-fit: contain; background-color: #eab308; border-radius: 4px; margin-right: 10px; padding: 2px;" alt="Other SR">
+                    <span>${t.otherSrGifts}</span>
+                    <div style="margin-left: 6px; display: flex;">
+                        <img src="images/gift_1.png" style="width: 16px; height: 16px; margin-left: 2px;" alt="L1">
+                        <img src="images/${encodeURIComponent('선물 선택 상자')}.webp" style="width: 16px; height: 16px; margin-left: 2px; object-fit: contain;" alt="Choice Box">
+                    </div>
+                </div>
+                <input type="number" min="0" value="0" id="gift-other-sr" style="width: 60px; padding: 4px; border-radius: 4px;">
+            </div>`;
+        }
+    }
+
+    html += `<hr style="border-top: 1px solid #45475a; margin: 15px 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div style="display: flex; align-items: center;">
+                    <img id="img-beautiful-bouquet" src="images/${encodeURIComponent('아름다운 꽃다발0')}.webp" style="width: 32px; height: 32px; object-fit: contain; background-color: #8b5cf6; border-radius: 4px; margin-right: 10px; padding: 2px;" alt="SSR">
+                    <span>${t.beautifulBouquet}</span>
+                    <div style="margin-left: 6px; display: flex;"><img src="images/gift_4.png" style="width: 16px; height: 16px; margin-left: 2px;" alt="L4"></div>
+                </div>
+                <input type="number" min="0" value="0" id="gift-beautiful-bouquet" style="width: 60px; padding: 4px; border-radius: 4px;">
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div style="display: flex; align-items: center;">
+                    <img id="img-shiny-bouquet" src="images/${encodeURIComponent('반짝이는 꽃다발0')}.webp" style="width: 32px; height: 32px; object-fit: contain; background-color: #8b5cf6; border-radius: 4px; margin-right: 10px; padding: 2px;" alt="SSR">
+                    <span>${t.shinyBouquet}</span>
+                    <div style="margin-left: 6px; display: flex;"><img src="images/gift_2.png" style="width: 16px; height: 16px; margin-left: 2px;" alt="L2"></div>
+                </div>
+                <input type="number" min="0" value="0" id="gift-shiny-bouquet" style="width: 60px; padding: 4px; border-radius: 4px;">
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div style="display: flex; align-items: center;">
+                    <img src="images/${encodeURIComponent('상급 합성용 기동석')}.webp" style="width: 32px; height: 32px; object-fit: contain; background-color: #eab308; border-radius: 4px; margin-right: 10px; padding: 2px;" alt="SR">
+                    <span>${t.advancedFusionKeystone}</span>
+                </div>
+                <input type="number" min="0" value="0" id="gift-fusion-keystone" style="width: 60px; padding: 4px; border-radius: 4px;">
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div style="display: flex; align-items: center;">
+                    <img src="images/${encodeURIComponent('선물 선택 상자')}.webp" style="width: 32px; height: 32px; object-fit: contain; background-color: #eab308; border-radius: 4px; margin-right: 10px; padding: 2px;" alt="SR">
+                    <span>${t.giftChoiceBox}</span>
+                    <div style="margin-left: 6px; display: flex;">${choiceBoxIconsHtml}</div>
+                </div>
+                <input type="number" min="0" value="0" id="gift-choice-box" style="width: 60px; padding: 4px; border-radius: 4px;">
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div style="display: flex; align-items: center;">
+                    <img src="images/${encodeURIComponent('카페 쓰담쓰담')}.png" style="width: 32px; height: 32px; object-fit: contain; border-radius: 4px; margin-right: 10px; padding: 2px;" alt="Cafe">
+                    <span>${t.cafeHeadpat}</span>
+                </div>
+                <input type="number" min="0" value="0" id="gift-cafe-headpat" style="width: 60px; padding: 4px; border-radius: 4px;">
+            </div>`;
+
+    html += `
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button id="closeGiftModal" class="btn-inline">${t.closeBtnModal}</button>
+                <button id="runBudgetCalc" class="btn-inline" style="background-color: #007bff; color: white;">${t.calcBtnModal}</button>
+            </div>
+        </div>
+    </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', html);
+    
+    // Setup Image Rotation Animation
+    let animIdx = 0;
+    if (window.giftModalInterval) clearInterval(window.giftModalInterval);
+    
+    window.giftModalInterval = setInterval(() => {
+        animIdx++;
+        
+        const imgBeautiful = document.getElementById('img-beautiful-bouquet');
+        if (imgBeautiful) imgBeautiful.src = `images/${encodeURIComponent('아름다운 꽃다발' + (animIdx % 2))}.webp`;
+        
+        const imgShiny = document.getElementById('img-shiny-bouquet');
+        if (imgShiny) imgShiny.src = `images/${encodeURIComponent('반짝이는 꽃다발' + (animIdx % 2))}.webp`;
+        
+        const imgOtherSsr = document.getElementById('img-other-ssr');
+        if (imgOtherSsr && otherSsrIds.length > 0) imgOtherSsr.src = `images/${encodeURIComponent(otherSsrIds[animIdx % otherSsrIds.length])}.webp`;
+        
+        const imgOtherSr = document.getElementById('img-other-sr');
+        if (imgOtherSr && otherSrIds.length > 0) imgOtherSr.src = `images/${encodeURIComponent(otherSrIds[animIdx % otherSrIds.length])}.webp`;
+    }, 1500); // Rotate every 1.5 seconds
+
+    document.getElementById('closeGiftModal').addEventListener('click', () => {
+        if (window.giftModalInterval) clearInterval(window.giftModalInterval);
+        document.getElementById('giftModalOverlay').remove();
+    });
+    document.getElementById('runBudgetCalc').addEventListener('click', () => alert("Budget calculation logic not yet implemented!"));
 }
 
 /**

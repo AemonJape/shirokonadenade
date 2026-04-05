@@ -1,6 +1,6 @@
 {
   "kr": {
-    "title": "블루 아카이브\n이격 인연작 최적화 계산기",
+    "title": "블루 아카이브\n인연작 최적화 계산기",
     "baseChar": "원본 학생:",
     "selectChar": "-- 학생 선택 --",
     "targetStat": "목표 스탯:",
@@ -41,10 +41,21 @@
     "graphXAxis": "누적 인연 XP",
     "graphYAxis": "누적 {stat} 상승량",
     "graphStart": "시작",
-    "viewBonuses": "인연 보너스 보기"
+    "viewBonuses": "인연 보너스 보기",
+    "calcBudgetBtn": "예산 기반 계산",
+    "giftMenuTitle": "보유 선물 입력",
+    "otherSsrGifts": "기타 고급 선물 (+120 XP)",
+    "otherSrGifts": "기타 일반 선물 (+20 XP)",
+    "beautifulBouquet": "아름다운 꽃다발",
+    "shinyBouquet": "반짝이는 꽃다발",
+    "advancedFusionKeystone": "상급 합성용 기동석",
+    "giftChoiceBox": "선물 선택 상자",
+    "cafeHeadpat": "카페 쓰담쓰담",
+    "calcBtnModal": "최적화 (구현 예정)",
+    "closeBtnModal": "닫기"
   },
   "en": {
-    "title": "Blue Archive\nBond Rank Bonus Stat Optimizer for Students with Alts",
+    "title": "Blue Archive\nBond Rank Bonus Stat Optimizer",
     "baseChar": "Base Student:",
     "selectChar": "-- Select Student --",
     "targetStat": "Target Stat:",
@@ -85,10 +96,21 @@
     "graphXAxis": "Cumulative Bond XP",
     "graphYAxis": "Cumulative {stat} Gain",
     "graphStart": "Start",
-    "viewBonuses": "View Bond Bonuses"
+    "viewBonuses": "View Bond Bonuses",
+    "calcBudgetBtn": "Calculate from Budget",
+    "giftMenuTitle": "Input Owned Gifts",
+    "otherSsrGifts": "Other SSR Gifts (+120 XP)",
+    "otherSrGifts": "Other SR Gifts (+20 XP)",
+    "beautifulBouquet": "Beautiful Bouquet", 
+    "shinyBouquet": "Shiny Bouquet",
+    "advancedFusionKeystone": "Advanced Fusion Keystone",
+    "giftChoiceBox": "Gift Choice Box",
+    "cafeHeadpat": "Cafe Headpats",
+    "calcBtnModal": "Optimize (WIP)",
+    "closeBtnModal": "Close"
   },
   "jp": {
-    "title": "ブルーアーカイブ\n絆ランクボーナス最適化\n他の衣装がある生徒のため",
+    "title": "ブルーアーカイブ\n絆ランクボーナス最適化",
     "baseChar": "元衣装の生徒:",
     "selectChar": "-- 生徒選択 --",
     "targetStat": "目標ステータス：",
@@ -129,6 +151,17 @@
     "graphXAxis": "累積絆XP",
     "graphYAxis": "累積{stat}上昇量",
     "graphStart": "開始",
-    "viewBonuses": "絆ボーナス表示"
+    "viewBonuses": "絆ボーナス表示",
+    "calcBudgetBtn": "予算から計算",
+    "giftMenuTitle": "所持している贈り物",
+    "otherSsrGifts": "その他の高級贈り物 (+120 XP)",
+    "otherSrGifts": "その他の普通贈り物 (+20 XP)",
+    "beautifulBouquet": "美しい花束",
+    "shinyBouquet": "きらめきの花束",
+    "advancedFusionKeystone": "上級テイラーストーン",
+    "giftChoiceBox": "贈り物選択ボックス",
+    "cafeHeadpat": "カフェなでなで",
+    "calcBtnModal": "最適化 (未実装)",
+    "closeBtnModal": "閉じる"
   }
 }
